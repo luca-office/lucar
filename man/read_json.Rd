@@ -7,7 +7,7 @@
 read_json(path, unzip = FALSE)
 }
 \arguments{
-\item{path}{The path of the folder including all JSON files (might be included in subfolders).}
+\item{path}{The path to the folder including all JSON files (files in subfolders are also considered).}
 }
 \value{
 A dataframe including the prepared data from all JSON files
@@ -15,4 +15,9 @@ A dataframe including the prepared data from all JSON files
 \description{
 JSON files exported from the LUCA office simulation into a dedicated folder
 are read into a datafrmame.
+Best is to dowload all zip files into a dedicated folder and unpack them in that same folder.
+Then provide this folder's path to the function.
+}
+\examples{
+
 }
