@@ -10,23 +10,36 @@
 #' @examples
 #'
 #' @export
-get_scenario_elements <- function (json_data, basic_wf_codes=basic_wf_codes) {
+get_project_elements <- function (json_data, basic_wf_codes=basic_wf_codes) {
 
-  # prepare the nested list with the info on the scenario files as a tibble
-  scenario_data <- json_data$files %>%
+  # prepare a tibble with info on the project files that were categorize according to their relevance
+  categorized_files <- json_data$files %>%
     purrr::map_depth(2, ~ replace(.x, is.null(.x), NA)) %>% # replacing NULL elements by NA
     bind_rows() %>%   # format list as dataframe
     mutate(doc_type=sub(pattern = "(.*)\\.", replacement = "", name)) %>%  # extract file extension from file name
-    mutate(wf_code=NA) %>% # initialization of the variable for the workflow codes
+    mutate(wf_code=construct_wf_code(relevance)) %>% # setting the running workflow codes for each element of this type
     select(id, name, wf_code, usage_type=usageType, relevance, doc_type)  # select only relevant variables
 
 
-  # construction of the workflow code
-  scenario_data$wf_code <- paste0(recode(substr(scenario_data$relevance, 1, 1), "I"=0, "P"=1, "R"=2),
-                                  stringr::str_pad(1:nrow(scenario_data), width=3, side="left", pad="0"))
+  # prepare a tibble with info on the project elements that were categorize according to their relevance
+  emails <- json_data$emails %>%
+    lapply(function(x) x[names(x)!="ccRecipients"]) %>% # removing ccRecipients since it has different types depending on its content
+    purrr::map_depth(2, ~ replace(.x, is.null(.x), NA)) %>% # replacing NULL elements by NA
+    bind_rows() %>%   # format list as dataframe
+    mutate(wf_code=construct_wf_code(relevance)) %>% # seting the running workflow codes for each element of this type
+    mutate(name=subject, usage_type="Email", relevance, doc_type="mail") %>% # renaming variables according to the general format
+    select(id, name, wf_code, usage_type, relevance, doc_type)  # select only relevant variables
 
-  scenario_elements <- scenario_data
 
+  # combining the different elements in a common table
+  project_elements <- rbind(categorized_files, emails)
 
-  return(scenario_elements)
+  return(project_elements)
+}
+
+# helper function to assign the running workflow code for elements of the same type
+construct_wf_code <- function(relevance){
+  wf_code <- paste0(recode(substr(relevance, 1, 1), "I"=0, "P"=1, "R"=2),
+         stringr::str_pad(1:length(relevance), width=3, side="left", pad="0"))
+  return (wf_code)
 }

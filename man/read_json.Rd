@@ -4,10 +4,12 @@
 \alias{read_json}
 \title{Reads all JSON files into a single dataframe}
 \usage{
-read_json(path, unzip = FALSE)
+read_json(path = "./", unzip = FALSE)
 }
 \arguments{
 \item{path}{The path to the folder including all JSON files (files in subfolders are also considered).}
+
+\item{unzip}{If true, the function looks for zip archives located in the given path, corresponding to the naming convention for exported data from LUCA Office, and unzips these.}
 }
 \value{
 A dataframe including the prepared data from all JSON files

@@ -15,30 +15,27 @@ get_workflow <- function (json_data) {
   if (length(json_data$surveyEvents)==0) {
   }
 
-  # formatting the events into a table
-  events <- json_data$surveyEvents
-  event_table <- data.frame(matrix(unlist(events, recursive=FALSE), nrow=length(events), byrow=TRUE))
-  names(event_table) <- names(events[[1]])
+  # formatting the events into a tibble
+  events <- as_tibble(data.frame(matrix(unlist(json_data$surveyEvents, recursive=FALSE), nrow=length(events), byrow=TRUE))) %>% # transforming nested list into a iibble
+    rename_with(~names(events[[1]])) %>% # retrieving original column names
+    mutate(across(c(timestamp, eventType, index), ~sapply(.x, function(x) x[[1]]))) # unnest columns provided in lists
 
-  # filtering only relevant scenario event types
-  scenario_events <- event_table %>%
-    filter(!eventType %in% c("StoreParticipantData", "StartProject", "EndProject", "StartSurveyCommand", "EndSurveyCommand"))
+  # get all project elements and their respective workflow codes
+  project_elements <- get_project_elements(json_data)
 
-  # retreiving the scenarion data, which includes the table with workflow codes
-  scenario_data <- get_scenario_data(json_data)
+  workflow <- left_join(events, basic_wf_codes, by="eventType") %>%
+    select(invitation_id=invitationId, survey_id=surveyId, timestamp, label, eventType, wf_code, data=data.x, index=index.x) %>%
+    mutate(time=lubridate::as_datetime(timestamp[[1]]) )%>%
+    tidyr::unnest_wider(data) %>%
+    left_join(project_elements, by="id") %>%
+    mutate(wf_code.y=replace(wf_code.y, is.na(wf_code.y), "")) %>%
+    mutate(wf_code=paste0(wf_code.x, wf_code.y)) %>%
+    mutate(scenario_time = as.difftime("")) %>%
+    mutate(event_duration = as.difftime("")) %>%
+    select(invitation_id, surveyId, scenario_id=scenarioId, time, scenario_time, event_duration, label, event_type=eventType, wf_code, tool, name, usage_type)
 
-  for (i in 1:nrow(scenario_events)) {
-    event <- scenario_events[i,]
-    workflow_event <- data.frame(id = event$invitationId[[1]])
-    workflow_event$survey_id <- event$surveyId[[1]]
-    workflow_event$invitation_token <- event$invitationToken[[1]]
-    workflow_event$scenario_id <- event$data[[1]]$scenarioId
-    workflow_event$event_type <- event$eventType[[1]]
-    workflow_event$wf_code <- get_wf_code(event, scenario_data)
-    workflow_event$time <- lubridate::as_datetime(event$timestamp[[1]])
-    workflow_event$scenario_time <- as.difftime("")
-    workflow_event$event_duration <- as.difftime("")
-
+  for (i in 1:nrow(workflow)) {
+    event <- workflow[i,]
 
     if (is.null(workflow)) {
       # in case this event is the first in the considered workflow, set some further initial values and use current workflow_event to initialize the workflow table
@@ -57,9 +54,4 @@ get_workflow <- function (json_data) {
   }
 
   return(workflow)
-
-  #n_senarios <- length(json_data$project$projectModules)
-  #for (i in 1:n_scenario) {
-  #  scenarioId <- json_data$project$projectModules[[i]]$id
-  #}
 }
