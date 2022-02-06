@@ -7,13 +7,16 @@
 #'
 #' @param path The path to the folder including all JSON files (files in subfolders are also considered).
 #'
+#' @param unzip If true, the function looks for zip archives located in the given path, corresponding to the naming convention for exported data from LUCA Office, and unzips these.
+#'
 #' @return A dataframe including the prepared data from all JSON files
 #'
 #' @examples
 #'
 #' @export
-read_json <- function (path, unzip = FALSE){
+read_json <- function (path = "./", unzip = FALSE){
 
+  # unzip files if necessary
   if (unzip){
     zip_files <- grep("^Luca-Erhebungsdaten-.*\\.zip$", list.files(path), value=TRUE)
     for (zip_file in zip_files){
@@ -24,85 +27,39 @@ read_json <- function (path, unzip = FALSE){
   # Get all JSON files located in the given path (including all subfolders)
   json_files <- grep("\\.json", list.files(path, full.names=TRUE, recursive=TRUE), value=TRUE)
 
-  # Initialization of the object for the survey data
-  survey_data <- NULL
+  # Initialization of the objects for the prepared participation data
+  participation <- NULL
+  workflow <- list()
 
   # Looping through all JSON files identified in the given path
   for (json_file in json_files){
 
-    # Import JSON file (including the data from a single participant)
+    # Import JSON file (including the data from a single participation)
     json_data <- rjson::fromJSON(file= file.path(json_file))
 
-    # extract basic participant info
-    id <- json_data$surveyInvitation$id
-    token <- json_data$surveyInvitation$token
-    account_participation <- json_data$surveyInvitation$isUserAccountParticipation
-    open_participation <- json_data$surveyInvitation$isOpenParticipation
 
-    participant <- data.frame(id, token, project_start=NA, project_end=NA,
-                              account_participation, open_participation,
-                              salutation=NA, first_name=NA, last_name=NA)
-
-    # Checking if participant has registered events/ started the project
-    if (length(json_data$surveyEvents)>0){
-      participant$project_start <- getTime(json_data$surveyInvitation$firstSurveyEventTimestamp)
-      participant$project_end <- getTime(json_data$surveyInvitation$lastSurveyEventTimestamp)
-      participant$salutation <- json_data$surveyEvents[[1]]$data$salutation
-      participant$first_name <- json_data$surveyEvents[[1]]$data$firstName
-      participant$last_name <- json_data$surveyEvents[[1]]$data$lastName
-
-      for (event in json_data$surveyEvents){
-        if (event$eventType=="StartScenario"){
-          variable <- paste0(event$data$scenarioId,"_start")
-          value <- getTime(event$timestamp)
-          participant[[variable]] <- value
-        }
-        if (event$eventType=="AnswerEmail"){
-          id_answer_mail <- event$data$createdEmailId
-        }
-        if (event$eventType=="UpdateEmailText"){
-          if (event$data$id==id_answer_mail){
-            variable <- paste0(event$data$scenarioId,"_mail_answer")
-            value <- event$data$text
-            participant[[variable]] <- value
-          }
-        }
-        if (event$eventType=="EndScenario"){
-          variable <- paste0(event$data$scenarioId,"_end")
-          value <- getTime(event$timestamp)
-          participant[[variable]] <- value
-        }
-      }
+    # add new dataframe row for the given participation
+    new_participation <- get_participation_data(json_data)
+    if (is.null(participation)){
+      participation <- new_participation
+    } else {
+      participation <- rbind(participation, new_participation)
     }
 
-    # add extracted data to the overall survey data
-    if (is.null(survey_data)){
-      survey_data <- participant
-    }
-    else{
-      survey_data <- dplyr::full_join(survey_data, participant)
-    }
+    # add new list element with the workflow data from the given participation
+    new_workflow <- get_workflow(json_data)
+    workflow <- append(workflow, new_workflow)
+
   }
 
-  if (is.null(survey_data)){
+  if (is.null(participation)){
     warning("Neither the folder nor the subfolders of the given path include a JSON file!")
   }
-  else {
-    # selection of just the IDs of the project parts (scenarios, questionnaires or other elements)
-    # they are assumed in survey_data be in the correct order of appearance (they should be)
-    project_parts <- grep("........-....-....-....-............_", names(survey_data), value=TRUE)
-    project_parts <- substr(1,36)
-    project_parts <- project_parts[!duplicated(project_parts)]
 
-    for (i in length(project_parts)){
-      names(survey_data) <- gsub(project_parts[i], paste0("part",i), names(survey_data))
-    }
-
-  }
-
-  return(survey_data)
+  return(list(participation=participation, workflow=workflow))
 
 }
+
 
 # Formatting time data
 getTime <- function(time, tzone="CET"){
