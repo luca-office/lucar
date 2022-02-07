@@ -2,9 +2,14 @@ Package: lucar
 Title: Prepare Data from the LUCA Office Simulation
 Version: 0.0.1
 Authors@R: person("Steffen", "Brandt", email="steffen@opencampus.sh", role = c("aut", "cre"), comment = c(ORCID = "0000-0001-5410-7186"))
-Description: It reads all JSON files provided in a dedicated folder and its subdolders, prepares all data included in these, and joins them in a single dataframe.
-License: use_gpl3_license()
+Description: Reads all JSON files provided in a dedicated folder and its subdolders, and prepares the data included in these.
+License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.2
-Depends: rjson, dplyr, lubridate
+Depends: 
+    rjson,
+    dplyr,
+    lubridate,
+    R (>= 3.50)
+LazyData: true

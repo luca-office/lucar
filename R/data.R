@@ -13,12 +13,16 @@
 
 
 # helper function to construct the tibble including the basic workflow codes
+#' @importFrom dplyr filter
+#' @importFrom dplyr select
+#' @importFrom dplyr mutate
+#' @importFrom dplyr across
 write_unique_events <- function (event_table, file="unique_events.csv") {
 
   # Construction of a tibble including each existing event type and providing
   # the basic structure for the tibble including the basic workflow codes
   unique_events <- event_table %>%
-    filter(!duplicated(event_table$eventType)) %>%
+    filter(!duplicated(eventType)) %>%
     select(eventType, data, index) %>%
     mutate(across(c(eventType, index), ~sapply(.x, function(x) x[[1]]))) %>%
     mutate(across(c(data), ~sapply(.x,  rjson::toJSON))) %>%
@@ -31,10 +35,10 @@ write_unique_events <- function (event_table, file="unique_events.csv") {
 }
 
 
-# helper function to import and save the manually edited table for the basi
-# basic workflow codes
+# helper function to import and add edited table including the basic workflow
+# codes to the package project
 read_unique_events <- function (file="basic_wf_codes.csv") {
   basic_wf_codes <-  readr::read_csv2(file)
-  save(basic_wf_codes, file="data/basic_wf_codes.Rda")
+  usethis::use_data(basic_wf_codes)
   return (readr::read_csv2(file))
 }

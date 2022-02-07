@@ -34,7 +34,7 @@ read_json <- function (path = "./", unzip = FALSE){
   # Looping through all JSON files identified in the given path
   for (json_file in json_files){
 
-    # Import JSON file (including the data from a single participation)
+    # Import JSON file including the data from a single participation
     json_data <- rjson::fromJSON(file= file.path(json_file))
 
 
@@ -48,7 +48,7 @@ read_json <- function (path = "./", unzip = FALSE){
 
     # add new list element with the workflow data from the given participation
     new_workflow <- get_workflow(json_data)
-    workflow <- append(workflow, new_workflow)
+    workflow <- append(workflow, list(new_workflow))
 
   }
 
@@ -63,6 +63,6 @@ read_json <- function (path = "./", unzip = FALSE){
 
 # Formatting time data
 getTime <- function(time, tzone="CET"){
-  return(lubridate::with_tz(ymd_hms(time), tzone))
+  return(lubridate::with_tz(lubridate::ymd_hms(time), tzone))
 }
 
