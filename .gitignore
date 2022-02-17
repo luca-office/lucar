@@ -38,5 +38,5 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 
-# Test Data
-test_data/*
+# Folder for development purposes
+dev/*

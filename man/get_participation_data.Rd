@@ -7,7 +7,7 @@
 get_participation_data(json_data)
 }
 \arguments{
-\item{jsondata}{The log data for a single participation in form of a json object}
+\item{json_data}{The log data for a single participation in form of a json object}
 }
 \value{
 A dataframe (consisting one row) including general information for a single participation
@@ -16,5 +16,10 @@ A dataframe (consisting one row) including general information for a single part
 Takes the log data from a single participation and returns a dataframe including a single line with general information of the participation.
 }
 \examples{
+\dontrun{
+json_file = "participation_logdata.json"
+json_data <- rjson::fromJSON(json_file)
+participation_data <- get_participation_data(json_data)
+}
 
 }

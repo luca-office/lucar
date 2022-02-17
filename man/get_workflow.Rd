@@ -4,10 +4,18 @@
 \alias{get_workflow}
 \title{Getting the workflow data from a single participation}
 \usage{
-get_workflow(json_data)
+get_workflow(
+  json_data,
+  workflow_coding = workflow_coding,
+  tool_coding = tool_coding
+)
 }
 \arguments{
-\item{jsondata}{The log data for a single participation in form of a nested list}
+\item{json_data}{The log data for a single participation in form of a nested list}
+
+\item{workflow_coding}{Dataframe with the workflow coding that is used to structure the log data}
+
+\item{tool_coding}{Dataframe with the tool coding that is used to assign each used tool to a common code}
 }
 \value{
 A list including the workflow data
@@ -16,5 +24,10 @@ A list including the workflow data
 Takes the log data from a single participation and returns a list describing the workflow.
 }
 \examples{
+\dontrun{
+json_file = "participation_logdata.json"
+json_data <- rjson::fromJSON(json_file)
+workflow <- get_workflow(json_data)
+}
 
 }

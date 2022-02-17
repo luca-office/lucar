@@ -4,10 +4,10 @@
 \alias{get_project_elements}
 \title{Getting the scenario elements and its respective codes for the data}
 \usage{
-get_project_elements(json_data, basic_wf_codes = basic_wf_codes)
+get_project_elements(json_data)
 }
 \arguments{
-\item{json_data}{The log data for a single participation in form of a nested list}
+\item{json_data}{Nested list including the log data for a single participation}
 }
 \value{
 A dataframe including the scenario elements, their workflow codes and other relevant information
@@ -17,5 +17,10 @@ Takes the log data from a single participation and returns a list with the names
 These might prepared onboarding steps, emails, excel sheets, pdf, events and other elements.
 }
 \examples{
+\dontrun{
+json_file = "participation_logdata.json"
+json_data <- rjson::fromJSON(json_file)
+project_elements <- get_project_elements(json_data)
+}
 
 }

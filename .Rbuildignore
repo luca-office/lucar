@@ -1,4 +1,4 @@
 ^lucar\.Rproj$
 ^\.Rproj\.user$
-test_data/*
+^dev/*
 ^LICENSE\.md$

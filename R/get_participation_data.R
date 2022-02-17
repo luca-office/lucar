@@ -2,11 +2,16 @@
 #'
 #' Takes the log data from a single participation and returns a dataframe including a single line with general information of the participation.
 #'
-#' @param jsondata The log data for a single participation in form of a json object
+#' @param json_data The log data for a single participation in form of a json object
 #'
 #' @return A dataframe (consisting one row) including general information for a single participation
 #'
 #' @examples
+#' \dontrun{
+#' json_file = "participation_logdata.json"
+#' json_data <- rjson::fromJSON(json_file)
+#' participation_data <- get_participation_data(json_data)
+#' }
 #'
 #' @export
 get_participation_data <- function (json_data){
@@ -36,7 +41,10 @@ get_participation_data <- function (json_data){
 }
 
 
-# Formatting time data
+#' Formatting time data
+#' @param time Time value in string format that is formatted
+#' @param tzone Time zone to be used for the formatting of the time value
+#'
 getTime <- function(time, tzone="CET"){
   return(lubridate::with_tz(lubridate::ymd_hms(time), tzone))
 }
