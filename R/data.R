@@ -28,21 +28,6 @@
 #' @source Constructed manually based on the unique event types provided in the log data of LUCA Office.
 "tool_coding"
 
-#' Document type coding.
-#'
-#' A dataframe providing a two digit code to additionally assign each document
-#' to a specific document type
-#'
-#' @format A tibble with XX rows and YY variables:
-#' \describe{
-#'   \item{document_id}{project specific document ID, a 3 digit number}
-#'   \item{code}{a two digit document type code that is assigned to the given document_id}
-#'   \item{label}{a label for the document type}
-#' }
-#' @source Constructed manually based on the unique event types provided in the log data of LUCA Office.
-"document_type_coding"
-
-
 
 #' Helper function to construct a table including the information for the workflow coding
 #'
@@ -62,12 +47,10 @@
 #' @importFrom utils write.csv2
 write_unique_events <- function (events, file="dev/unique_events.csv") {
 
-  # Construction of a tibble including each existing event type and providing
-  # the basic structure for the tibble including the basic workflow codes
   unique_events <- events %>%
     filter(!duplicated(eventType)) %>%
     select(eventType, data, index) %>%
-    rename(event_type=eventType, data_example=data) %>%
+    mutate(event_type=eventType, data_example=data) %>%
     mutate(across(c(event_type, index), ~sapply(.x, function(x) x[[1]]))) %>%
     mutate(across(c(data_example), ~sapply(.x,  rjson::toJSON))) %>%
     mutate(label="", wf_code="", .after=event_type)
@@ -96,8 +79,5 @@ import_basic_coding <- function (file="dev/basic_coding.xlsx") {
   # Importing standard tool codes as data
   tool_coding <- read_excel("dev/basic_coding.xlsx", sheet = "tool_coding")
   usethis::use_data(tool_coding, overwrite=TRUE)
-  # Importing example for document type codes as data
-  document_type_coding <- read_excel("dev/basic_coding.xlsx", sheet = "document_type_coding")
-  usethis::use_data(document_type_coding, overwrite=TRUE)
 
 }

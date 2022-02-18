@@ -66,7 +66,7 @@ prepare_logdata <- function (path = "./", unzip = FALSE, workflow_codes=workflow
     # collects incomplete wf_codes, e.g. due to unknown events or unmatched id's
     incomplete_codes <- nchar(workflows[[element_name]]$wf_code)!=10
     unknown_events <- rbind(unknown_events, workflows[[element_name]][incomplete_codes,])
-    unknown_events <- unknown_events[!duplicated(unknown_events$wf_code),]
+    unknown_events <- unknown_events[!duplicated(unknown_events$event_type),]
 
   }
 

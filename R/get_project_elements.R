@@ -23,12 +23,13 @@
 get_project_elements <- function (json_data) {
 
   # tibble with info on the project files that are categorized according to their relevance
-  categorized_files <- json_data$files %>%
+  files <- json_data$files %>%
     purrr::map_depth(2, ~ replace(.x, is.null(.x), NA)) %>% # replacing NULL elements by NA
     dplyr::bind_rows() %>%   # format list as dataframe
     dplyr::mutate(doc_type=sub(pattern = "(.*)\\.", replacement = "", name)) %>%  # extract file extension from file name
-    dplyr::mutate(wf_code=construct_wf_code(relevance)) %>% # setting the running workflow codes for each element of this type
-    dplyr::select(id, name, wf_code, usage_type=usageType, relevance, doc_type)  # select only relevant variables
+    dplyr::filter(!duplicated(binaryFileId)) %>%
+    dplyr::mutate(element_code=construct_element_code(relevance)) %>% # setting the running workflow codes for each element of this type
+    dplyr::select(id, binaryFileId, spreadsheetId, name, element_code, usage_type=usageType, relevance, doc_type)  # select only relevant variables
 
 
   # tibble with info on the project emails that are categorized according to their relevance
@@ -36,13 +37,16 @@ get_project_elements <- function (json_data) {
     lapply(function(x) x[names(x)!="ccRecipients"]) %>% # removing ccRecipients since it has different types depending on its content
     purrr::map_depth(2, ~ replace(.x, is.null(.x), NA)) %>% # replacing NULL elements by NA
     dplyr::bind_rows() %>%   # format list as dataframe
-    dplyr::mutate(wf_code=construct_wf_code(relevance)) %>% # seting the running workflow codes for each element of this type
-    dplyr::mutate(name=subject, usage_type="Email", relevance, doc_type="mail") %>% # renaming variables according to the general format
-    dplyr::select(id, name, wf_code, usage_type, relevance, doc_type)  # select only relevant variables
+    dplyr::mutate(element_code=construct_element_code(relevance)) %>% # seting the running workflow codes for each element of this type
+    dplyr::mutate(binaryFileId=NA, spreadsheetId=NA, name=subject, usage_type="Email", relevance, doc_type="mail") %>% # renaming variables according to the general format
+    dplyr::select(id, binaryFileId, spreadsheetId, name, element_code, usage_type, relevance, doc_type)  # select only relevant variables
 
 
-  # combining the different elements in a common table
-  project_elements <- rbind(categorized_files, emails)
+  # combining the elements in a single table
+  project_elements <- rbind(files, emails) %>%
+    # setting missing to "#" to prevent matches with the event ids due to NA
+    dplyr::mutate(binaryFileId=replace(binaryFileId, is.na(binaryFileId), "#")) %>%
+    dplyr::mutate(spreadsheetId=replace(spreadsheetId, is.na(spreadsheetId), "#"))
 
   return(project_elements)
 }
@@ -53,7 +57,7 @@ get_project_elements <- function (json_data) {
 #'
 #' @importFrom dplyr recode
 #' @importFrom stringr str_pad
-construct_wf_code <- function(relevance){
+construct_element_code <- function(relevance){
   wf_code <- paste0(recode(substr(relevance, 1, 1), "I"=0, "P"=1, "R"=2),
          str_pad(1:length(relevance), width=3, side="left", pad="0"))
   return (wf_code)
