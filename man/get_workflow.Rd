@@ -6,16 +6,16 @@
 \usage{
 get_workflow(
   json_data,
-  workflow_coding = workflow_coding,
-  tool_coding = tool_coding
+  workflow_codes = workflow_coding,
+  tool_codes = tool_coding
 )
 }
 \arguments{
 \item{json_data}{The log data for a single participation in form of a nested list}
 
-\item{workflow_coding}{Dataframe with the workflow coding that is used to structure the log data}
+\item{workflow_codes}{Dataframe with the workflow coding that is used to structure the log data}
 
-\item{tool_coding}{Dataframe with the tool coding that is used to assign each used tool to a common code}
+\item{tool_codes}{Dataframe with the tool coding that is used to assign each used tool to a common code}
 }
 \value{
 A list including the workflow data

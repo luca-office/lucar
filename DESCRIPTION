@@ -16,5 +16,6 @@ Depends:
     tidyr,
     usethis,
     readxl,
+    plyr,
     R (>= 3.50)
 LazyData: true
