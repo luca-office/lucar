@@ -68,7 +68,8 @@ get_workflow <- function (json_data, workflow_codes=workflow_coding, tool_codes=
     dplyr::left_join(select(project_elements,-c("id","spreadsheetId")), by="binaryFileId") %>%
     dplyr::left_join(select(project_elements,-c("id","binaryFileId")), by="spreadsheetId") %>%
 
-    # replace NAs provided for project elements without individual id by empty string
+    # merge element codes from the joins above and replace NAs by empty string
+    dplyr::mutate(element_code=dplyr::coalesce(element_code, element_code.x, element_code.y)) %>%
     dplyr::mutate(element_code=replace(element_code, is.na(element_code), "")) %>%
     # join basic wf codes with individual project element code
     dplyr::mutate(wf_code=paste0(wf_code, element_code)) %>%
@@ -76,11 +77,11 @@ get_workflow <- function (json_data, workflow_codes=workflow_coding, tool_codes=
     # calculate variables for event times
     dplyr::mutate(scenario_time = time-time[1], event_duration = time-dplyr::lag(time)) %>%
     # select final set of variable
-    dplyr::select(invitation_id, survey_id, scenario_id=scenarioId, time, scenario_time, event_duration,
-           label, event_type, wf_code, tool, name, usage_type) %>%
+    #dplyr::select(invitation_id, survey_id, scenario_id=scenarioId, time, scenario_time, event_duration,
+    #       label, event_type, wf_code, tool, name, usage_type) %>%
 
     # only for debugging purposes (replacing the above line)
-    #select(  binaryFileId, emailId, spreadsheetId, fileId, label, event_type, time,event_duration, wf_code, element_code, tool, name, usage_type, data2) %>%
+    select(  binaryFileId, emailId, spreadsheetId, fileId, label, event_type, time,event_duration, wf_code, element_code, tool, name, usage_type, data2) %>%
 
     # exclude cases with a wf code of "#" (see basic table with wf codes)
     dplyr::filter(wf_code!="#") %>%
