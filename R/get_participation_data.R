@@ -35,7 +35,7 @@ get_participation_data <- function (json_data, hash_ids=FALSE){
       participation$first_name <- json_data$surveyEvents[[1]]$data$firstName
       participation$last_name <- json_data$surveyEvents[[1]]$data$lastName
     }
-    perticipation <- participation %>%
+    participation <- participation %>%
       dplyr::select_if(hash_ids|!grepl("^id$|Id$", names(.)))
 
 
