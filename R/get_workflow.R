@@ -3,8 +3,10 @@
 #' Takes the log data from a single participation and returns a list describing the workflow.
 #'
 #' @param json_data The log data for a single participation in form of a nested list
+#' @param scenario_specific If TRUE the workflow is split into separate lists for each scenario element
 #' @param workflow_codes Dataframe with the workflow coding that is used to structure the log data
 #' @param tool_codes Dataframe with the tool coding that is used to assign each used tool to a common code
+#' @param hash_ids If TRUE the internal hash IDs for the projct elements are included
 #'
 #' @return A list including the workflow data
 #'
@@ -26,8 +28,18 @@
 #' @importFrom lubridate as_datetime
 #' @importFrom dplyr filter
 #' @importFrom plyr mapvalues
+#' @importFrom rlang syms
+#' @importFrom dplyr slice
 #' @export
-get_workflow <- function (json_data, workflow_codes=workflow_coding, tool_codes=tool_coding) {
+get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=workflow_coding, tool_codes=tool_coding, hash_ids=FALSE) {
+
+
+
+
+
+  # TODO Add data field: - including value field for spreadsheet updates
+  #                      - including number of characters in text for
+
 
   # return empty list if no events were recorded
   if (length(json_data$surveyEvents)==0) {
@@ -44,8 +56,11 @@ get_workflow <- function (json_data, workflow_codes=workflow_coding, tool_codes=
     # rename column
     dplyr::mutate(event_type=eventType)
 
+  # get all project scenarios and the corresponding hash IDs
+  project_scenarios <- get_project_scenarios(json_data, hash_ids=TRUE)
+
   # get all project elements and their respective workflow codes
-  project_elements <- get_project_elements(json_data)
+  project_elements <- get_project_elements(json_data, hash_ids=TRUE)
 
   workflow <-
     # match events with the basic_wf_codes
@@ -62,35 +77,65 @@ get_workflow <- function (json_data, workflow_codes=workflow_coding, tool_codes=
 
     # unnest all variables included in the list variable data
     tidyr::unnest_wider(data) %>%
+    # renaming ID variables according to naming conventions
+    dplyr::rename(scenario_id=scenarioId, binary_file_id=binaryFileId, spreadsheet_id=spreadsheetId, file_id=fileId, email_id=emailId) %>%
 
     # match event ids with the ids of the project elements
-    dplyr::left_join(select(project_elements,-c("binaryFileId","spreadsheetId")), by="id") %>%
-    dplyr::left_join(select(project_elements,-c("id","spreadsheetId")), by="binaryFileId") %>%
-    dplyr::left_join(select(project_elements,-c("id","binaryFileId")), by="spreadsheetId") %>%
+    dplyr::left_join(select(project_elements,-c("binary_file_id","spreadsheet_id")), by="id", na_matches="never") %>%
+    dplyr::left_join(select(project_elements,-c("id","spreadsheet_id")), by="binary_file_id", na_matches="never") %>%
+    dplyr::left_join(select(project_elements,-c("id","binary_file_id")), by="spreadsheet_id", na_matches="never") %>%
+    dplyr::left_join(select(project_elements,-c("id","spreadsheet_id")), by=c("file_id"="binary_file_id"), na_matches="never") %>%
+    dplyr::left_join(select(project_elements,-c("binary_file_id", "spreadsheet_id")), by=c("email_id"="id"), na_matches="never") %>%
 
-    # merge element codes from the joins above and replace NAs by empty string
-    dplyr::mutate(element_code=dplyr::coalesce(element_code, element_code.x, element_code.y)) %>%
+    # merge relevant variables (replacing NAs with values included due to subsequent joins above) and replace NAs by empty string
+    #dplyr::mutate(element_code=dplyr::coalesce(grep("element_code", names(.), value=TRUE)))
+    dplyr::mutate(name=dplyr::coalesce(!!!syms(grep("^name",names(.), value=TRUE)))) %>%
+    dplyr::mutate(usage_type=dplyr::coalesce(!!!syms(grep("^usage_type",names(.), value=TRUE)))) %>%
+    dplyr::mutate(element_code=dplyr::coalesce(!!!syms(grep("^element_code",names(.), value=TRUE)))) %>%
+
     dplyr::mutate(element_code=replace(element_code, is.na(element_code), "")) %>%
     # join basic wf codes with individual project element code
     dplyr::mutate(wf_code=paste0(wf_code, element_code)) %>%
 
-    # calculate variables for event times
-    dplyr::mutate(scenario_time = time-time[1], event_duration = time-dplyr::lag(time)) %>%
-    # select final set of variable
-    #dplyr::select(invitation_id, survey_id, scenario_id=scenarioId, time, scenario_time, event_duration,
-    #       label, event_type, wf_code, tool, name, usage_type) %>%
-
-    # only for debugging purposes (replacing the above line)
-    select(  binaryFileId, emailId, spreadsheetId, fileId, label, event_type, time,event_duration, wf_code, element_code, tool, name, usage_type, data2) %>%
+    # calculate variables for project run time and event durations
+    dplyr::mutate(project_time = time-time[1], event_duration = time-dplyr::lag(time)) %>%
 
     # exclude cases with a wf code of "#" (see basic table with wf codes)
     dplyr::filter(wf_code!="#") %>%
 
     # integrate tool id into the wf_codes were necessary
     dplyr::mutate(wf_code=replace(wf_code, grepl("^T##", wf_code),
-                           paste0("T",
-                                  plyr::mapvalues(tool, tool_codes$tool, tool_codes$code, warn_missing = FALSE)[grepl("^T##", wf_code)],
-                                  substr(wf_code[grepl("^T##", wf_code)], 4, 10) )))
+                                  paste0("T",
+                                         plyr::mapvalues(tool, tool_codes$tool, tool_codes$code, warn_missing = FALSE)[grepl("^T##", wf_code)],
+                                         substr(wf_code[grepl("^T##", wf_code)], 4, 10) ))) %>%
+
+    # integrate scenario id into the wf_codes were necessary
+    dplyr::mutate(wf_code=replace(wf_code, grepl("^S##", wf_code),
+                                  paste0("S",
+                                         plyr::mapvalues(scenario_id, project_scenarios$scenario_id, project_scenarios$code, warn_missing = FALSE)[grepl("^S##", wf_code)],
+                                         substr(wf_code[grepl("^S##", wf_code)], 4, 10) ))) %>%
+
+    # select final set of variable
+    dplyr::select(invitation_id, survey_id, scenario_id, time, project_time, event_duration,
+           label, event_type, wf_code, name, usage_type, binary_file_id, email_id, spreadsheet_id, file_id) %>%
+
+    # removing hash IDs if indicated by boolean argument 'hash_ids'
+    dplyr::select_if(hash_ids|!grepl("^id$|_id$", names(.)))
+
+
+
+    # If indicated, split workflow into multiple lists, one for each scenario
+    if (scenario_specific){
+      full_workflow <- workflow %>%
+        dplyr::rename(scenario_time=project_time)
+      workflow <- list()
+      for (scenario_code in project_scenarios$code){
+        workflow[[scenario_code]] <- slice(full_workflow, c(grep(paste0("^S",scenario_code,"STR"),full_workflow$wf_code):
+                                                              grep(paste0("^S",scenario_code,"END"),full_workflow$wf_code)))
+        # Adjusting the run time to be scenario specific
+        workflow[[scenario_code]]$scenario_time <- workflow[[scenario_code]]$scenario_time - workflow[[scenario_code]]$scenario_time[1]
+      }
+    }
 
   return(workflow)
 }

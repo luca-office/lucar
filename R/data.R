@@ -49,8 +49,7 @@ write_unique_events <- function (events, file="dev/unique_events.csv") {
 
   unique_events <- events %>%
     filter(!duplicated(eventType)) %>%
-    select(eventType, data, index) %>%
-    mutate(event_type=eventType, data_example=data) %>%
+    select(event_type=eventType, data_example=data, index) %>%
     mutate(across(c(event_type, index), ~sapply(.x, function(x) x[[1]]))) %>%
     mutate(across(c(data_example), ~sapply(.x,  rjson::toJSON))) %>%
     mutate(label="", wf_code="", .after=event_type)

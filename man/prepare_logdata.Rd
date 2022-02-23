@@ -7,9 +7,10 @@
 prepare_logdata(
   path = "./",
   unzip = FALSE,
-  workflow_codes = workflow_coding,
-  tool_codes = tool_coding,
-  include_unknown_events = FALSE
+  scenario_specific = TRUE,
+  workflow_codes = lucar::workflow_coding,
+  tool_codes = lucar::tool_coding,
+  debug_mode = FALSE
 )
 }
 \arguments{
@@ -17,11 +18,13 @@ prepare_logdata(
 
 \item{unzip}{If true, the function looks for zip archives located in the given path, corresponding to the naming convention for exported data from LUCA Office, and unzips these.}
 
+\item{scenario_specific}{If TRUE the workflow is split into separate lists for each scenario element}
+
 \item{workflow_codes}{Dataframe with the workflow coding that is used to structure the log data}
 
 \item{tool_codes}{Dataframe with the tool coding that is used to assign each used tool to a common code}
 
-\item{include_unknown_events}{If TRUE the result object includes a tibble including unknown event types (if there were any)}
+\item{debug_mode}{If TRUE the results include the internal hash IDs for the project elements are included and a tibble including unknown event types (if there were any). If 'scenario_specific' is set to TRUE it will be enforced to 'FALSE'.}
 }
 \value{
 A dataframe including the prepared data from all JSON files

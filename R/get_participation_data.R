@@ -3,6 +3,7 @@
 #' Takes the log data from a single participation and returns a dataframe including a single line with general information of the participation.
 #'
 #' @param json_data The log data for a single participation in form of a json object
+#' @param hash_ids If TRUE the internal hash IDs for the projct elements are included
 #'
 #' @return A dataframe (consisting one row) including general information for a single participation
 #'
@@ -14,7 +15,7 @@
 #' }
 #'
 #' @export
-get_participation_data <- function (json_data){
+get_participation_data <- function (json_data, hash_ids=FALSE){
 
     # Initialization of the dataframe row for the general answer data of the participation with the participant ID
     participation <- data.frame(id = json_data$surveyInvitation$id)
@@ -34,6 +35,8 @@ get_participation_data <- function (json_data){
       participation$first_name <- json_data$surveyEvents[[1]]$data$firstName
       participation$last_name <- json_data$surveyEvents[[1]]$data$lastName
     }
+    perticipation <- participation %>%
+      dplyr::select_if(hash_ids|!grepl("^id$|Id$", names(.)))
 
 
   return(participation)
