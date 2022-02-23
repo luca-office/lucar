@@ -12,7 +12,7 @@ get_participation_data(json_data, hash_ids = FALSE)
 \item{hash_ids}{If TRUE the internal hash IDs for the projct elements are included}
 }
 \value{
-A dataframe (consisting one row) including general information for a single participation
+A dataframe (consisting of one row) including general information for a single participation
 }
 \description{
 Takes the log data from a single participation and returns a dataframe including a single line with general information of the participation.

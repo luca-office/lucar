@@ -7,7 +7,6 @@
 prepare_logdata(
   path = "./",
   unzip = FALSE,
-  scenario_specific = TRUE,
   workflow_codes = lucar::workflow_coding,
   tool_codes = lucar::tool_coding,
   debug_mode = FALSE
@@ -17,8 +16,6 @@ prepare_logdata(
 \item{path}{The path to the folder including all JSON files (files in subfolders are also considered).}
 
 \item{unzip}{If true, the function looks for zip archives located in the given path, corresponding to the naming convention for exported data from LUCA Office, and unzips these.}
-
-\item{scenario_specific}{If TRUE the workflow is split into separate lists for each scenario element}
 
 \item{workflow_codes}{Dataframe with the workflow coding that is used to structure the log data}
 
