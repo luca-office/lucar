@@ -7,9 +7,10 @@
 #'
 #' @param path The path to the folder including all JSON files (files in subfolders are also considered).
 #' @param unzip If true, the function looks for zip archives located in the given path, corresponding to the naming convention for exported data from LUCA Office, and unzips these.
+#' @param scenario_specific If TRUE the workflow is split into separate lists for each scenario element
 #' @param workflow_codes Dataframe with the workflow coding that is used to structure the log data
 #' @param tool_codes Dataframe with the tool coding that is used to assign each used tool to a common code
-#' @param include_unknown_events If TRUE the result object includes a tibble including unknown event types (if there were any)
+#' @param debug_mode If TRUE the results include the internal hash IDs for the project elements are included and a tibble including unknown event types (if there were any). If 'scenario_specific' is set to TRUE it will be enforced to 'FALSE'.
 #'
 #' @return A dataframe including the prepared data from all JSON files
 #'
@@ -24,7 +25,15 @@
 #' @importFrom rjson fromJSON
 #' @importFrom dplyr tibble
 #' @export
-prepare_logdata <- function (path = "./", unzip = FALSE, workflow_codes=workflow_coding, tool_codes=tool_coding, include_unknown_events=FALSE){
+prepare_logdata <- function (path = "./", unzip = FALSE, scenario_specific=TRUE,
+                             workflow_codes=lucar::workflow_coding, tool_codes=lucar::tool_coding,
+                             debug_mode=FALSE){
+
+  # Forcing 'scenario_specific' to TRUE for debigging mode
+  if (debug_mode & scenario_specific) {
+    scenario_specific <- FALSE
+    warning("Argument 'scenario_specific' is enforced to FALSE since 'debug_mode' was set TRUE.")
+  }
 
   # unzip files if necessary
   if (unzip){
@@ -51,22 +60,25 @@ prepare_logdata <- function (path = "./", unzip = FALSE, workflow_codes=workflow
     json_data <- rjson::fromJSON(file= file.path(json_file))
 
 
+    # add new list element with the workflow data, naming it with the ID of the  participation
+    element_name <- sub('\\..*$', '', basename(json_file))
+    workflows[[element_name]] <- get_workflow(json_data, scenario_specific=scenario_specific, workflow_codes, tool_codes, hash_ids=debug_mode)
+
+    # in debugging mode: collects incomplete wf_codes, e.g. due to unknown events or unmatched id's
+    if (debug_mode) {
+      incomplete_codes <- nchar(workflows[[element_name]]$wf_code)!=10
+      unknown_events <- rbind(unknown_events, workflows[[element_name]][incomplete_codes,])
+      unknown_events <- unknown_events[!duplicated(unknown_events$event_type),]
+    }
+
+
     # add new dataframe row for the given participation
-    new_participation <- get_participation_data(json_data)
+    new_participation <- get_participation_data(json_data, debug_mode)
     if (is.null(participation)){
       participation <- new_participation
     } else {
       participation <- rbind(participation, new_participation)
     }
-
-    # add new list element with the workflow data, naming it with the ID of the  participation
-    element_name <- sub('\\..*$', '', basename(json_file))
-    workflows[[element_name]] <- get_workflow(json_data, workflow_codes, tool_codes)
-
-    # collects incomplete wf_codes, e.g. due to unknown events or unmatched id's
-    incomplete_codes <- nchar(workflows[[element_name]]$wf_code)!=10
-    unknown_events <- rbind(unknown_events, workflows[[element_name]][incomplete_codes,])
-    unknown_events <- unknown_events[!duplicated(unknown_events$event_type),]
 
   }
 
@@ -75,8 +87,8 @@ prepare_logdata <- function (path = "./", unzip = FALSE, workflow_codes=workflow
   }
 
   # add dataframe including unknown events if indicated
-  prepared_logdata <- list(participation=participation, workflows=workflows)
-  if (include_unknown_events) {
+  prepared_logdata <- list(participation=participation, workflows=workflows, project_elements=get_project_elements(json_data, debug_mode), project_scenarios=get_project_scenarios(json_data, debug_mode))
+  if (debug_mode) {
     prepared_logdata[["unknown_events"]] <- unknown_events
   }
 

@@ -4,10 +4,12 @@
 \alias{get_project_elements}
 \title{Getting the scenario elements and its respective codes for the data}
 \usage{
-get_project_elements(json_data)
+get_project_elements(json_data, hash_ids = FALSE)
 }
 \arguments{
 \item{json_data}{Nested list including the log data for a single participation}
+
+\item{hash_ids}{If TRUE the internal hash IDs for the projct elements are included}
 }
 \value{
 A dataframe including the scenario elements, their workflow codes and other relevant information

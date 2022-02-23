@@ -4,10 +4,12 @@
 \alias{get_participation_data}
 \title{Getting the General Participation Information}
 \usage{
-get_participation_data(json_data)
+get_participation_data(json_data, hash_ids = FALSE)
 }
 \arguments{
 \item{json_data}{The log data for a single participation in form of a json object}
+
+\item{hash_ids}{If TRUE the internal hash IDs for the projct elements are included}
 }
 \value{
 A dataframe (consisting one row) including general information for a single participation
