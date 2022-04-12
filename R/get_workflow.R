@@ -63,10 +63,10 @@ get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=wor
   # Construction of a helper dataframe that includes all variables used from the nested JSON data structure
   # it is needed to add missing variables to the temporary dataframe of the workflow (e.g. if some events did not occur for the given participant)
   # without adding the variables the values for the data column prepared later would not run through
-  needed_variables <- data.frame(message=NA, content=NA, value=NA, text=NA, mimeType=NA,
-                                 spreadsheetTitle=NA, binaryFileTitle=NA, startCellName=NA,
-                                 endCellName=NA, cellName=NA, to=NA, cc=NA, subject=NA,
-                                 tool=NA, directory=NA, endType=NA)
+  needed_variables <- data.frame(message=NA_character_, content=NA_character_, value=NA_character_, text=NA_character_, mimeType=NA_character_,
+                                 spreadsheetTitle=NA_character_, binaryFileTitle=NA_character_, startCellName=NA_character_,
+                                 endCellName=NA_character_, cellName=NA_character_, to=NA_character_, cc=NA_character_, subject=NA_character_,
+                                 tool=NA_character_, directory=NA_character_, endType=NA_character_)
 
 
   workflow <-
@@ -127,8 +127,6 @@ get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=wor
                                          plyr::mapvalues(scenario_id, project_scenarios$scenario_id, project_scenarios$code, warn_missing = FALSE)[grepl("^S##", wf_code)],
                                          substr(wf_code[grepl("^S##", wf_code)], 4, 10) ))) %>%
 
-    add_column(!!!cols[!names(cols) %in% names(.)])
-
     # prepare content for the data column depending on the event type
     dplyr::mutate(data=dplyr::case_when(event_type=="StoreParticipantData" ~ paste0("Salutation: ", salutation, "; First name: ", firstName, "; Last name: ", lastName),
                                         event_type=="UpdateNotesText" | event_type=="UpdateEmailText" | event_type=="SendEmail" ~ text,
@@ -140,7 +138,7 @@ get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=wor
                                         event_type=="UpdateSpreadsheetCellValue" ~ paste0(cellName, ": ", value),
                                         event_type=="SelectSpreadsheetCellRange" ~ paste0(startCellName, " : ", endCellName),
                                         event_type=="ViewFile" ~ mimeType,
-                                        event_type=="OpenPdfBinary" | event_type=="SelectPdfBinary" | event_type=="SelectImageBinary" | event_type=="OpenImageBinary" | "OpenVideoBinary" | event_type=="SelectVideoBinary" ~ binaryFileTitle,
+                                        event_type=="OpenPdfBinary" | event_type=="SelectPdfBinary" | event_type=="SelectImageBinary" | event_type=="OpenImageBinary" | event_type=="OpenVideoBinary" | event_type=="SelectVideoBinary" ~ binaryFileTitle,
                                         event_type=="SendParticipantChatMessage" | event_type=="ReceiveSupervisorChatMessage" ~ message,
                                         event_type=="PasteFromClipboard" ~ content,
                                         # TODO: Completing the data column for not yet considered events
@@ -149,9 +147,9 @@ get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=wor
                                         event_type=="UpdateEmail" ~ paste0("To: ", to, "; CC: ", cc, "; Subject: ", subject)
                                         )) %>%
 
-    # select final set of variable
-    dplyr::select(event_type, data2, data, invitation_id, survey_id, scenario_id, time, project_time, event_duration,
-           label, event_type, wf_code, name, data, usage_type, binary_file_id, email_id, spreadsheet_id, file_id) %>%
+    # select final set of variables
+    dplyr::select(invitation_id, survey_id, scenario_id, time, project_time, event_duration,
+           label, event_type, wf_code, data, name, usage_type, binary_file_id, email_id, spreadsheet_id, file_id) %>%
 
     # removing hash IDs if indicated by boolean argument 'hash_ids'
     dplyr::select_if(hash_ids|!grepl("^id$|_id$", names(.)))
