@@ -30,11 +30,9 @@
 #' @importFrom plyr mapvalues
 #' @importFrom rlang syms
 #' @importFrom dplyr slice
+#' @importFrom dplyr arrange
 #' @export
 get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=workflow_coding, tool_codes=tool_coding, hash_ids=FALSE) {
-
-
-
 
 
   # TODO Add data field: - including value field for spreadsheet updates
@@ -96,6 +94,9 @@ get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=wor
     dplyr::mutate(element_code=replace(element_code, is.na(element_code), "")) %>%
     # join basic wf codes with individual project element code
     dplyr::mutate(wf_code=paste0(wf_code, element_code)) %>%
+
+    # Order events according to their time stamps (this step might be unnecessary once the log data generation is corrected in LUCA office)
+    arrange(time) %>%
 
     # calculate variables for project run time and event durations
     dplyr::mutate(project_time = time-time[1], event_duration = time-dplyr::lag(time)) %>%
