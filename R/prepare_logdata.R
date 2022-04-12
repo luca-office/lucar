@@ -6,6 +6,7 @@
 #' Then provide this folder's path to the function.
 #'
 #' @param path The path to the folder including all JSON files (files in subfolders are also considered).
+#' @param summarize_wf If TRUE the events with identical task codes and directly following each other will be summarized to a single task
 #' @param unzip If true, the function looks for zip archives located in the given path, corresponding to the naming convention for exported data from LUCA Office, and unzips these.
 #' @param workflow_codes Dataframe with the workflow coding that is used to structure the log data
 #' @param tool_codes Dataframe with the tool coding that is used to assign each used tool to a common code
@@ -24,7 +25,7 @@
 #' @importFrom rjson fromJSON
 #' @importFrom dplyr tibble
 #' @export
-prepare_logdata <- function (path = "./", unzip = FALSE, workflow_codes=lucar::workflow_coding,
+prepare_logdata <- function (path = "./", summarize_wf=FALSE, unzip = FALSE, workflow_codes=lucar::workflow_coding,
                              tool_codes=lucar::tool_coding, debug_mode=FALSE){
 
   # Setting 'scenario_specific' workflow preparation to FALSE for debugging mode and TRUE otherwise
@@ -62,6 +63,10 @@ prepare_logdata <- function (path = "./", unzip = FALSE, workflow_codes=lucar::w
     # add new list element with the workflow data, naming it with the ID of the  participation
     element_name <- sub('\\..*$', '', basename(json_file))
     workflows[[element_name]] <- get_workflow(json_data, scenario_specific=scenario_specific, workflow_codes, tool_codes, hash_ids=debug_mode)
+    # summarize the workflow data if indicated by the corresponding argument
+    if (summarize_wf) {
+      workflows[[element_name]] <- summarize_workflow(workflows[[element_name]])
+    }
 
     # construct new tibble row for the tibble including the participation data on all participants
     new_participation <- get_participation_data(json_data, debug_mode)
