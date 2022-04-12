@@ -31,8 +31,8 @@ A dataframe including the prepared data from all JSON files
 }
 \description{
 JSON files exported from the LUCA office simulation into a dedicated folder
-are read into a datafrmame.
-Best is to dowload all zip files into a dedicated folder and unpack them in that same folder.
+are read into a dataframe.
+Best is to download all zip files into a dedicated folder and unpack them in that same folder.
 Then provide this folder's path to the function.
 }
 \examples{

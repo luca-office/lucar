@@ -16,7 +16,7 @@
 #'
 #' @examples
 #'
-#' # Searches in the current working directory (if no other path is provided) and all subdirectories for log data from LUCA office
+#' # Searches in the current working directory and all subdirectories for log data from LUCA office
 #' # and prepares the data in a structure suitable for further analyses
 #' \dontrun{
 #' logdata <- prepare_logdata()
@@ -98,7 +98,10 @@ prepare_logdata <- function (path = "./", summarize_wf=FALSE, unzip = FALSE, wor
   }
 
   # add dataframe including unknown events if indicated
-  prepared_logdata <- list(participation=participation, workflows=workflows, project_elements=get_project_elements(json_data, debug_mode), project_scenarios=get_project_scenarios(json_data, debug_mode))
+  prepared_logdata <- list(participation=participation,
+                           workflows=workflows,
+                           project_elements=get_project_elements(json_data, debug_mode),
+                           project_scenarios=get_project_scenarios(json_data, debug_mode))
   if (debug_mode) {
     prepared_logdata[["unknown_events"]] <- unknown_events
   }

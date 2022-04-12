@@ -31,12 +31,12 @@
 #' @importFrom rlang syms
 #' @importFrom dplyr slice
 #' @importFrom dplyr arrange
+#' @importFrom tibble add_column
 #' @export
 get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=workflow_coding, tool_codes=tool_coding, hash_ids=FALSE) {
 
 
-  # TODO Add data field: - including value field for spreadsheet updates
-  #                      - including number of characters in text for
+  # TODO: Completing the data column for not yet considered events
 
 
   # return empty list if no events were recorded
@@ -60,6 +60,15 @@ get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=wor
   # get all project elements and their respective workflow codes
   project_elements <- get_project_elements(json_data, hash_ids=TRUE)
 
+  # Construction of a helper dataframe that includes all variables used from the nested JSON data structure
+  # it is needed to add missing variables to the temporary dataframe of the workflow (e.g. if some events did not occur for the given participant)
+  # without adding the variables the values for the data column prepared later would not run through
+  needed_variables <- data.frame(message=NA, content=NA, value=NA, text=NA, mimeType=NA,
+                                 spreadsheetTitle=NA, binaryFileTitle=NA, startCellName=NA,
+                                 endCellName=NA, cellName=NA, to=NA, cc=NA, subject=NA,
+                                 tool=NA, directory=NA, endType=NA)
+
+
   workflow <-
     # match events with the basic_wf_codes
     dplyr::left_join(events, workflow_codes, by="event_type") %>%
@@ -75,6 +84,8 @@ get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=wor
 
     # unnest all variables included in the list variable data
     tidyr::unnest_wider(data) %>%
+    # add dummy variables for event data that was not generated for this participant
+    tibble::add_column(!!!needed_variables[!names(needed_variables) %in% names(.)]) %>%
     # renaming ID variables according to naming conventions
     dplyr::rename(scenario_id=scenarioId, binary_file_id=binaryFileId, spreadsheet_id=spreadsheetId, file_id=fileId, email_id=emailId) %>%
 
@@ -116,13 +127,34 @@ get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=wor
                                          plyr::mapvalues(scenario_id, project_scenarios$scenario_id, project_scenarios$code, warn_missing = FALSE)[grepl("^S##", wf_code)],
                                          substr(wf_code[grepl("^S##", wf_code)], 4, 10) ))) %>%
 
+    add_column(!!!cols[!names(cols) %in% names(.)])
+
+    # prepare content for the data column depending on the event type
+    dplyr::mutate(data=dplyr::case_when(event_type=="StoreParticipantData" ~ paste0("Salutation: ", salutation, "; First name: ", firstName, "; Last name: ", lastName),
+                                        event_type=="UpdateNotesText" | event_type=="UpdateEmailText" | event_type=="SendEmail" ~ text,
+                                        event_type=="OpenTool" | event_type=="CloseTool" | event_type=="RestoreTool" | event_type=="MinimizeTool" ~ tool,
+                                        event_type=="SelectEmailDirectory" ~ directory,
+                                        event_type=="EndScenario" ~ endType,
+                                        event_type=="OpenSpreadsheet" | event_type=="SelectSpreadsheet" ~ spreadsheetTitle,
+                                        event_type=="SelectSpreadsheetCell" ~ cellName,
+                                        event_type=="UpdateSpreadsheetCellValue" ~ paste0(cellName, ": ", value),
+                                        event_type=="SelectSpreadsheetCellRange" ~ paste0(startCellName, " : ", endCellName),
+                                        event_type=="ViewFile" ~ mimeType,
+                                        event_type=="OpenPdfBinary" | event_type=="SelectPdfBinary" | event_type=="SelectImageBinary" | event_type=="OpenImageBinary" | "OpenVideoBinary" | event_type=="SelectVideoBinary" ~ binaryFileTitle,
+                                        event_type=="SendParticipantChatMessage" | event_type=="ReceiveSupervisorChatMessage" ~ message,
+                                        event_type=="PasteFromClipboard" ~ content,
+                                        # TODO: Completing the data column for not yet considered events
+                                        #event_type=="" ~ value,
+                                        #event_type=="" ~ value,
+                                        event_type=="UpdateEmail" ~ paste0("To: ", to, "; CC: ", cc, "; Subject: ", subject)
+                                        )) %>%
+
     # select final set of variable
-    dplyr::select(invitation_id, survey_id, scenario_id, time, project_time, event_duration,
-           label, event_type, wf_code, name, usage_type, binary_file_id, email_id, spreadsheet_id, file_id) %>%
+    dplyr::select(event_type, data2, data, invitation_id, survey_id, scenario_id, time, project_time, event_duration,
+           label, event_type, wf_code, name, data, usage_type, binary_file_id, email_id, spreadsheet_id, file_id) %>%
 
     # removing hash IDs if indicated by boolean argument 'hash_ids'
     dplyr::select_if(hash_ids|!grepl("^id$|_id$", names(.)))
-
 
 
     # If indicated, split workflow into multiple lists, one for each scenario
