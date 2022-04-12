@@ -1,8 +1,8 @@
 #' Reads all JSON files into a single dataframe
 #'
 #' JSON files exported from the LUCA office simulation into a dedicated folder
-#' are read into a datafrmame.
-#' Best is to dowload all zip files into a dedicated folder and unpack them in that same folder.
+#' are read into a dataframe.
+#' Best is to download all zip files into a dedicated folder and unpack them in that same folder.
 #' Then provide this folder's path to the function.
 #'
 #' @param path The path to the folder including all JSON files (files in subfolders are also considered).
@@ -16,7 +16,7 @@
 #'
 #' @examples
 #'
-#' # Searches in the current working directory and all subdirectories for log data from LUCA office
+#' # Searches in the current working directory (if no other path is provided) and all subdirectories for log data from LUCA office
 #' # and prepares the data in a structure suitable for further analyses
 #' \dontrun{
 #' logdata <- prepare_logdata()
