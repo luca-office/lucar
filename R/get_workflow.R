@@ -77,7 +77,7 @@ get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=wor
     # unnest columns with ids
     dplyr::mutate(invitation_id=unlist(invitation_id), survey_id=unlist(survey_id)) %>%
     # format time variable
-    dplyr::mutate(time=as_datetime(timestamp)) %>%
+    dplyr::mutate(time=lubridate::as_datetime(timestamp)) %>%
 
     dplyr::mutate(data2=data) %>%
 
@@ -97,12 +97,11 @@ get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=wor
     dplyr::left_join(select(project_elements,-c("binary_file_id", "spreadsheet_id")), by=c("email_id"="id"), na_matches="never") %>%
 
     # merge relevant variables (replacing NAs with values included due to subsequent joins above) and replace NAs by empty string
-    #dplyr::mutate(element_code=dplyr::coalesce(grep("element_code", names(.), value=TRUE)))
-    dplyr::mutate(name=dplyr::coalesce(!!!syms(grep("^name",names(.), value=TRUE)))) %>%
-    dplyr::mutate(usage_type=dplyr::coalesce(!!!syms(grep("^usage_type",names(.), value=TRUE)))) %>%
-    dplyr::mutate(element_code=dplyr::coalesce(!!!syms(grep("^element_code",names(.), value=TRUE)))) %>%
+    dplyr::mutate(name=dplyr::coalesce(!!!syms(grep("^name",names(.), value=TRUE))),
+                  usage_type=dplyr::coalesce(!!!syms(grep("^usage_type",names(.), value=TRUE))),
+                  element_code=dplyr::coalesce(!!!syms(grep("^element_code",names(.), value=TRUE))),
+                  element_code=replace(element_code, is.na(element_code), "")) %>%
 
-    dplyr::mutate(element_code=replace(element_code, is.na(element_code), "")) %>%
     # join basic wf codes with individual project element code
     dplyr::mutate(wf_code=paste0(wf_code, element_code)) %>%
 
@@ -147,13 +146,15 @@ get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=wor
                                         event_type=="UpdateEmail" ~ paste0("To: ", to, "; CC: ", cc, "; Subject: ", subject)
                                         )) %>%
 
+    # Fill missings in variable data with the value provided in the variable name (usually the name of the file the participant is working with)
+    dplyr::mutate(data=coalesce(data, name)) %>%
+
     # select final set of variables
     dplyr::select(invitation_id, survey_id, scenario_id, time, project_time, event_duration,
-           label, event_type, wf_code, data, name, usage_type, binary_file_id, email_id, spreadsheet_id, file_id) %>%
+           label, wf_code, data, binary_file_id, email_id, spreadsheet_id, file_id) %>%
 
     # removing hash IDs if indicated by boolean argument 'hash_ids'
     dplyr::select_if(hash_ids|!grepl("^id$|_id$", names(.)))
-
 
     # If indicated, split workflow into multiple lists, one for each scenario
     if (scenario_specific){
