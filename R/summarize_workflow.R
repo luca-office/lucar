@@ -1,6 +1,10 @@
 #' Summarizing the workflow data from a single participation
 #'
-#' Takes the workflow data from a single participation and returns a summarized form, where events with identical workflow codes that occur direct after each other are summarized to single task. The duration is then returned on the task level and for each task and intensity is calculated that describes how many events occured in the original datasets within this task.
+#' Takes the workflow data from a single participation and returns a summarized form,
+#' where events with identical workflow codes that occur directly after each other are
+#' summarized to a single activity. The durations are correspondingly returned on the
+#' activity level, and for each task an intensity is calculated that describes how
+#' many events occurred in the original datasets within a given activity.
 #'
 #' @param workflow A list including the workflow data
 #'
@@ -33,14 +37,14 @@ summarize_workflow <- function (workflow) {
     # only keep those case where the current workflow code is different from the previous
     dplyr::filter(wf_code!=previous_wf_code) %>%
 
-    # calculation of the task duration after summarizing evnets with identiacl workflows codes ocurring directly after each other
-    dplyr::mutate(task_duration=project_time-dplyr::lag(project_time)) %>%
+    # calculation of the activity duration after summarizing evnets with identical workflows codes occurring directly after each other
+    dplyr::mutate(activity_duration=project_time-dplyr::lag(project_time)) %>%
 
-    # calculation  of the intensity (i.e. how how often the summarized events ocurred in the original data set directly after each other)
+    # calculation  of the intensity (i.e. how how often the summarized events occurred in the original data set directly after each other)
     dplyr::mutate(intensity=dplyr::lead(event_no)-event_no) %>%
 
     # preparation of the result data set
-    dplyr::select(time, project_time, task_duration, label, wf_code, intensity, name, usage_type)
+    dplyr::select(time, project_time, activity_duration, label, wf_code, intensity, name, usage_type)
 
   return(sum_workflow)
 }
