@@ -13,7 +13,11 @@ summarize_workflow(workflow)
 A list including the summarized workflow data
 }
 \description{
-Takes the workflow data from a single participation and returns a summarized form, where events with identical workflow codes that occur direct after each other are summarized to single task. The duration is then returned on the task level and for each task and intensity is calculated that describes how many events occured in the original datasets within this task.
+Takes the workflow data from a single participation and returns a summarized form,
+where events with identical workflow codes that occur directly after each other are
+summarized to a single activity. The durations are correspondingly returned on the
+activity level, and for each task an intensity is calculated that describes how
+many events occurred in the original datasets within a given activity.
 }
 \examples{
 \dontrun{
