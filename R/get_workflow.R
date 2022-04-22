@@ -32,6 +32,7 @@
 #' @importFrom dplyr slice
 #' @importFrom dplyr arrange
 #' @importFrom tibble add_column
+#' @importFrom dplyr coalesce
 #' @export
 get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=workflow_coding, tool_codes=tool_coding, hash_ids=FALSE) {
 
@@ -147,7 +148,7 @@ get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=wor
                                         )) %>%
 
     # Fill missings in variable data with the value provided in the variable name (usually the name of the file the participant is working with)
-    dplyr::mutate(data=coalesce(data, name)) %>%
+    dplyr::mutate(data=dplyr::coalesce(data, name)) %>%
 
     # select final set of variables
     dplyr::select(invitation_id, survey_id, scenario_id, time, project_time, event_duration,
