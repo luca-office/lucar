@@ -68,7 +68,7 @@ write_logdata_csv2 <- function (logdata, folder="logdata"){
 
   # writing participation data
   readr::write_excel_csv2(logdata$participation,
-                         file=file.path(folder, paste0("participation.csv")))
+                         file=file.path(folder, paste0("participations_summary.csv")))
 
   # writing information on the project elements
   readr::write_excel_csv2(logdata$project_elements,
@@ -76,17 +76,16 @@ write_logdata_csv2 <- function (logdata, folder="logdata"){
 
   # writing information on the project scenarios
   readr::write_excel_csv2(logdata$project_scenarios,
-                         file=file.path(folder, paste0("project_scenarios.csv")))
+                         file=file.path(folder, paste0("project_modules.csv")))
 
   # writing the workflow data
   wf_folder <- file.path(folder, "workflows")
   dir.create(wf_folder)
   for (participant in names(logdata$workflows)) {
-    dir.create(file.path(wf_folder, participant))
 
-    for (scenario in names(logdata$workflows[[participant]])) {
-      readr::write_excel_csv2(logdata$workflows[[participant]][[scenario]],
-                             file=file.path(wf_folder, participant, paste0("scenario_", scenario, ".csv")))
+    for (module in names(logdata$workflows[[participant]])) {
+      readr::write_excel_csv2(logdata$workflows[[participant]][[module]],
+                             file=file.path(wf_folder, paste0(participant, "_", module, ".csv")))
     }
   }
   return(invisible(logdata))
