@@ -9,7 +9,7 @@ get_workflow(
   scenario_specific = FALSE,
   workflow_codes = workflow_coding,
   tool_codes = tool_coding,
-  hash_ids = FALSE
+  debug_mode = FALSE
 )
 }
 \arguments{
@@ -21,7 +21,7 @@ get_workflow(
 
 \item{tool_codes}{Dataframe with the tool coding that is used to assign each used tool to a common code}
 
-\item{hash_ids}{If TRUE the internal hash IDs for the projct elements are included}
+\item{debug_mode}{If TRUE the internal hash IDs for the project elements and additional lower level data are included}
 }
 \value{
 A list including the workflow data
@@ -32,7 +32,7 @@ Takes the log data from a single participation and returns a list describing the
 \examples{
 \dontrun{
 json_file = "participation_logdata.json"
-json_data <- rjson::fromJSON(json_file)
+json_data <- rjson::fromJSON(file=json_file)
 workflow <- get_workflow(json_data)
 }
 

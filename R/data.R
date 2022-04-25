@@ -48,9 +48,9 @@
 write_unique_events <- function (events, file="dev/unique_events.csv") {
 
   unique_events <- events %>%
-    filter(!duplicated(eventType)) %>%
-    select(event_type=eventType, data_example=data, index) %>%
-    mutate(across(c(event_type, index), ~sapply(.x, function(x) x[[1]]))) %>%
+    filter(!duplicated(event_type)) %>%
+    select(event_type, data_example=data2) %>%  ## data
+    mutate(across(c(event_type), ~sapply(.x, function(x) x[[1]]))) %>%
     mutate(across(c(data_example), ~sapply(.x,  rjson::toJSON))) %>%
     mutate(label="", wf_code="", .after=event_type)
 
@@ -73,10 +73,10 @@ write_unique_events <- function (events, file="dev/unique_events.csv") {
 import_basic_coding <- function (file="dev/basic_coding.xlsx") {
 
   # Importing standard basic worklflow codes as data
-  workflow_coding <- read_excel("dev/basic_coding.xlsx", sheet = "workflow_coding")
+  workflow_coding <- readxl::read_excel("dev/basic_coding.xlsx", sheet = "workflow_coding")
   usethis::use_data(workflow_coding, overwrite=TRUE)
   # Importing standard tool codes as data
-  tool_coding <- read_excel("dev/basic_coding.xlsx", sheet = "tool_coding")
+  tool_coding <- readxl::read_excel("dev/basic_coding.xlsx", sheet = "tool_coding")
   usethis::use_data(tool_coding, overwrite=TRUE)
 
 }

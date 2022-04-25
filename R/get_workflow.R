@@ -6,14 +6,14 @@
 #' @param scenario_specific If TRUE the workflow is split into separate lists for each scenario element
 #' @param workflow_codes Dataframe with the workflow coding that is used to structure the log data
 #' @param tool_codes Dataframe with the tool coding that is used to assign each used tool to a common code
-#' @param hash_ids If TRUE the internal hash IDs for the projct elements are included
+#' @param debug_mode If TRUE the internal hash IDs for the project elements and additional lower level data are included
 #'
 #' @return A list including the workflow data
 #'
 #' @examples
 #' \dontrun{
 #' json_file = "participation_logdata.json"
-#' json_data <- rjson::fromJSON(json_file)
+#' json_data <- rjson::fromJSON(file=json_file)
 #' workflow <- get_workflow(json_data)
 #' }
 #'
@@ -34,7 +34,7 @@
 #' @importFrom tibble add_column
 #' @importFrom dplyr coalesce
 #' @export
-get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=workflow_coding, tool_codes=tool_coding, hash_ids=FALSE) {
+get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=workflow_coding, tool_codes=tool_coding, debug_mode=FALSE) {
 
 
   # TODO: Completing the data column for not yet considered events
@@ -67,7 +67,8 @@ get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=wor
   needed_variables <- data.frame(message=NA_character_, content=NA_character_, value=NA_character_, text=NA_character_, mimeType=NA_character_,
                                  spreadsheetTitle=NA_character_, binaryFileTitle=NA_character_, startCellName=NA_character_,
                                  endCellName=NA_character_, cellName=NA_character_, to=NA_character_, cc=NA_character_, subject=NA_character_,
-                                 tool=NA_character_, directory=NA_character_, endType=NA_character_)
+                                 tool=NA_character_, directory=NA_character_, endType=NA_character_, answerPosition=NA_character_,
+                                 value=NA_character_)
 
 
   workflow <-
@@ -122,10 +123,10 @@ get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=wor
                                          substr(wf_code[grepl("^T##", wf_code)], 4, 10) ))) %>%
 
     # integrate scenario id into the wf_codes were necessary
-    dplyr::mutate(wf_code=replace(wf_code, grepl("^S##", wf_code),
-                                  paste0("S",
-                                         plyr::mapvalues(scenario_id, project_scenarios$scenario_id, project_scenarios$code, warn_missing = FALSE)[grepl("^S##", wf_code)],
-                                         substr(wf_code[grepl("^S##", wf_code)], 4, 10) ))) %>%
+    dplyr::mutate(wf_code=replace(wf_code, grepl("^M##", wf_code),
+                                  paste0("M",
+                                         plyr::mapvalues(scenario_id, project_scenarios$scenario_id, project_scenarios$code, warn_missing = FALSE)[grepl("^M##", wf_code)],
+                                         substr(wf_code[grepl("^M##", wf_code)], 4, 10) ))) %>%
 
     # prepare content for the data column depending on the event type
     dplyr::mutate(data=dplyr::case_when(event_type=="StoreParticipantData" ~ paste0("Salutation: ", salutation, "; First name: ", firstName, "; Last name: ", lastName),
@@ -141,6 +142,7 @@ get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=wor
                                         event_type=="OpenPdfBinary" | event_type=="SelectPdfBinary" | event_type=="SelectImageBinary" | event_type=="OpenImageBinary" | event_type=="OpenVideoBinary" | event_type=="SelectVideoBinary" ~ binaryFileTitle,
                                         event_type=="SendParticipantChatMessage" | event_type=="ReceiveSupervisorChatMessage" ~ message,
                                         event_type=="PasteFromClipboard" ~ content,
+                                        event_type=="SelectQuestionnaireAnswer" ~ paste0(answerPosition, " ('", value, "')"),
                                         # TODO: Completing the data column for not yet considered events
                                         #event_type=="" ~ value,
                                         #event_type=="" ~ value,
@@ -152,10 +154,12 @@ get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=wor
 
     # select final set of variables
     dplyr::select(invitation_id, survey_id, scenario_id, time, project_time, event_duration,
-           label, wf_code, data, binary_file_id, email_id, spreadsheet_id, file_id) %>%
+           label, wf_code, data, event_type, data2, binary_file_id, email_id, spreadsheet_id, file_id) %>%
 
-    # removing hash IDs if indicated by boolean argument 'hash_ids'
-    dplyr::select_if(hash_ids|!grepl("^id$|_id$", names(.)))
+    # Removing hash IDs and debugging variables if 'debug_mode' is set to `FALSE`
+    dplyr::select_if(debug_mode|!grepl("^event_type$|^data2$|^id$|_id$", names(.)))
+
+
 
     # If indicated, split workflow into multiple lists, one for each scenario
     if (scenario_specific){
@@ -163,8 +167,8 @@ get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=wor
         dplyr::rename(scenario_time=project_time)
       workflow <- list()
       for (scenario_code in project_scenarios$code){
-        workflow[[scenario_code]] <- slice(full_workflow, c(grep(paste0("^S",scenario_code,"STR"),full_workflow$wf_code):
-                                                              grep(paste0("^S",scenario_code,"END"),full_workflow$wf_code)))
+        workflow[[scenario_code]] <- slice(full_workflow, c(grep(paste0("^M",scenario_code,"STR"),full_workflow$wf_code):
+                                                              grep(paste0("^M",scenario_code,"END"),full_workflow$wf_code)))
         # Adjusting the run time to be scenario specific
         workflow[[scenario_code]]$scenario_time <- workflow[[scenario_code]]$scenario_time - workflow[[scenario_code]]$scenario_time[1]
       }

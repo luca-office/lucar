@@ -19,6 +19,7 @@
 #' @importFrom dplyr bind_rows
 #' @importFrom dplyr select
 #' @importFrom dplyr n
+#' @importFrom stringr str_pad
 #' @export
 get_project_scenarios <- function (json_data, hash_ids=FALSE) {
 
@@ -26,8 +27,8 @@ get_project_scenarios <- function (json_data, hash_ids=FALSE) {
   scenarios <- json_data$project$projectModules %>%
     purrr::map_depth(2, ~ replace(.x, is.null(.x), NA)) %>% # replacing NULL elements by NA
     dplyr::bind_rows() %>%   # format list as dataframe
-    dplyr::mutate(code = str_pad(1:n(), width=2, side="left", pad="0")) %>% # setting the running workflow codes for each scenario
-    dplyr::select(code, title, scenario_id=scenarioId, sample_company_id=sampleCompanyId) %>% # select only relevant variables
+    dplyr::mutate(code = stringr::str_pad(1:n(), width=2, side="left", pad="0")) %>% # setting the running workflow codes for each scenario
+    dplyr::select(code, title, questionnaire_id=questionnaireId, scenario_id=scenarioId, sample_company_id=sampleCompanyId) %>% # select only relevant variables
     dplyr::select_if(hash_ids|!grepl("^id$|_id$", names(.))) # removing hash IDs if indicated by boolean argument 'hash_ids'
   return(scenarios)
 }
