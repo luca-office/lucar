@@ -9,7 +9,7 @@ get_workflow(
   scenario_specific = FALSE,
   workflow_codes = workflow_coding,
   tool_codes = tool_coding,
-  hash_ids = FALSE
+  debug_mode = FALSE
 )
 }
 \arguments{
@@ -32,7 +32,7 @@ Takes the log data from a single participation and returns a list describing the
 \examples{
 \dontrun{
 json_file = "participation_logdata.json"
-json_data <- rjson::fromJSON(json_file)
+json_data <- rjson::fromJSON(file=json_file)
 workflow <- get_workflow(json_data)
 }
 

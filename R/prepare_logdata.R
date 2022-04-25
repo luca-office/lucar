@@ -44,25 +44,29 @@ prepare_logdata <- function (path = "./", summarize_wf=FALSE, unzip = FALSE, wor
   }
 
   # Get all JSON files located in the given path (including all subfolders)
-  json_files <- grep("\\.json", list.files(path, full.names=TRUE, recursive=TRUE), value=TRUE)
+  json_files <- grep("\\.json$", list.files(path, full.names=TRUE, recursive=TRUE), value=TRUE)
 
   # Initialization of the objects for the prepared participation data
   participation <- NULL
   workflows <- list()
-  unknown_events <- tibble()
+  unknown_events <- dplyr::tibble()
 
   # Looping through all JSON files identified in the given path
   for (json_file in json_files){
 
     #TODO Implement Try/Catch for reading the json and checking the format
 
+
     # Import JSON file including the data from a single participation
+    if (debug_mode) {
+      print(json_file)
+    }
     json_data <- rjson::fromJSON(file= file.path(json_file))
 
 
     # add new list element with the workflow data, naming it with the ID of the  participation
     element_name <- sub('\\..*$', '', basename(json_file))
-    workflows[[element_name]] <- get_workflow(json_data, scenario_specific=scenario_specific, workflow_codes, tool_codes, hash_ids=debug_mode)
+    workflows[[element_name]] <- get_workflow(json_data, scenario_specific=scenario_specific, workflow_codes, tool_codes, debug_mode=debug_mode)
     # summarize the workflow data if indicated by the corresponding argument
     if (summarize_wf) {
       workflows[[element_name]] <- summarize_workflow(workflows[[element_name]])
