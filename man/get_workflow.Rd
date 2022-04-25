@@ -21,7 +21,7 @@ get_workflow(
 
 \item{tool_codes}{Dataframe with the tool coding that is used to assign each used tool to a common code}
 
-\item{hash_ids}{If TRUE the internal hash IDs for the projct elements are included}
+\item{debug_mode}{If TRUE the internal hash IDs for the project elements and additional lower level data are included}
 }
 \value{
 A list including the workflow data
