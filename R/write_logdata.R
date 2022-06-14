@@ -3,8 +3,8 @@
 #' After preparing (JSON) log data from LUCA office using  `prepare_data()`, you can
 #' use `write_logdata_csv()` or `write_logdata_csv2()` to write the workflow data, the
 #' participation data including aggregated information on the person level as well as
-#' two tables including information on the files existing in the scenarios and the
-#' names of the scenarios themselves.
+#' two tables including information on the files existing in the modules and the
+#' names of the modules themselves.
 #'
 #' @param logdata A list including prepared data from the function `prepare_logdata()`.
 #' @param folder A folder to which the csv files including the workflow data are exported.
@@ -38,9 +38,9 @@ write_logdata_csv <- function (logdata, folder="logdata"){
   readr::write_excel_csv(logdata$project_elements,
                          file=file.path(folder, paste0("project_elements.csv")))
 
-  # writing information on the project scenarios
-  readr::write_excel_csv(logdata$project_scenarios,
-                         file=file.path(folder, paste0("project_scenarios.csv")))
+  # writing information on the project modules
+  readr::write_excel_csv(logdata$project_modules,
+                         file=file.path(folder, paste0("project_modules.csv")))
 
   # writing the workflow data
   wf_folder <- file.path(folder, "workflows")
@@ -48,9 +48,9 @@ write_logdata_csv <- function (logdata, folder="logdata"){
   for (participant in names(logdata$workflows)) {
     dir.create(file.path(wf_folder, participant))
 
-    for (scenario in names(logdata$workflows[[participant]])) {
-      readr::write_excel_csv(logdata$workflows[[participant]][[scenario]],
-                 file=file.path(wf_folder, participant, paste0("scenario_", scenario, ".csv")))
+    for (module in names(logdata$workflows[[participant]])) {
+      readr::write_excel_csv(logdata$workflows[[participant]][[module]],
+                 file=file.path(wf_folder, participant, paste0("module_", module, ".csv")))
     }
   }
   return(invisible(logdata))
@@ -74,8 +74,8 @@ write_logdata_csv2 <- function (logdata, folder="logdata"){
   readr::write_excel_csv2(logdata$project_elements,
                          file=file.path(folder, paste0("project_elements.csv")))
 
-  # writing information on the project scenarios
-  readr::write_excel_csv2(logdata$project_scenarios,
+  # writing information on the project modules
+  readr::write_excel_csv2(logdata$project_modules,
                          file=file.path(folder, paste0("project_modules.csv")))
 
   # writing the workflow data

@@ -24,7 +24,7 @@ prepare_logdata(
 
 \item{tool_codes}{Dataframe with the tool coding that is used to assign each used tool to a common code}
 
-\item{debug_mode}{If TRUE the results include the internal hash IDs for the project elements are included and a tibble including unknown event types (if there were any). If 'scenario_specific' is set to TRUE it will be enforced to 'FALSE'.}
+\item{debug_mode}{If TRUE the results include the internal hash IDs for the project elements are included and a tibble including unknown event types (if there were any). If 'module_specific' is set to TRUE it will be enforced to 'FALSE'.}
 }
 \value{
 A dataframe including the prepared data from all JSON files

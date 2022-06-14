@@ -2,7 +2,7 @@
 % Please edit documentation in R/get_project_elements.R
 \name{get_project_elements}
 \alias{get_project_elements}
-\title{Getting the scenario elements and its respective codes for the data}
+\title{Getting the project elements and its respective codes for the data}
 \usage{
 get_project_elements(json_data, hash_ids = FALSE)
 }
@@ -12,7 +12,7 @@ get_project_elements(json_data, hash_ids = FALSE)
 \item{hash_ids}{If TRUE the internal hash IDs for the projct elements are included}
 }
 \value{
-A dataframe including the scenario elements, their workflow codes and other relevant information
+A dataframe including all project elements, their workflow codes and other relevant information
 }
 \description{
 Takes the log data from a single participation and returns a list with the names of all project elements and the respective workflow codes.

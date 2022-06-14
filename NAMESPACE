@@ -2,7 +2,7 @@
 
 export(get_participation_data)
 export(get_project_elements)
-export(get_project_scenarios)
+export(get_project_modules)
 export(get_workflow)
 export(prepare_logdata)
 export(summarize_workflow)

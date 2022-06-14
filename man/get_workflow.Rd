@@ -6,7 +6,7 @@
 \usage{
 get_workflow(
   json_data,
-  scenario_specific = FALSE,
+  module_specific = FALSE,
   workflow_codes = workflow_coding,
   tool_codes = tool_coding,
   debug_mode = FALSE
@@ -15,7 +15,7 @@ get_workflow(
 \arguments{
 \item{json_data}{The log data for a single participation in form of a nested list}
 
-\item{scenario_specific}{If TRUE the workflow is split into separate lists for each scenario element}
+\item{module_specific}{If TRUE the workflow is split into separate lists for each module element}
 
 \item{workflow_codes}{Dataframe with the workflow coding that is used to structure the log data}
 

@@ -3,7 +3,7 @@
 #' Takes the log data from a single participation and returns a list describing the workflow.
 #'
 #' @param json_data The log data for a single participation in form of a nested list
-#' @param scenario_specific If TRUE the workflow is split into separate lists for each scenario element
+#' @param module_specific If TRUE the workflow is split into separate lists for each module element
 #' @param workflow_codes Dataframe with the workflow coding that is used to structure the log data
 #' @param tool_codes Dataframe with the tool coding that is used to assign each used tool to a common code
 #' @param debug_mode If TRUE the internal hash IDs for the project elements and additional lower level data are included
@@ -34,7 +34,7 @@
 #' @importFrom tibble add_column
 #' @importFrom dplyr coalesce
 #' @export
-get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=workflow_coding, tool_codes=tool_coding, debug_mode=FALSE) {
+get_workflow <- function (json_data, module_specific=FALSE, workflow_codes=workflow_coding, tool_codes=tool_coding, debug_mode=FALSE) {
 
 
   # TODO: Completing the data column for not yet considered events
@@ -55,8 +55,8 @@ get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=wor
     # rename column
     dplyr::mutate(event_type=eventType)
 
-  # get all project scenarios and the corresponding hash IDs
-  project_scenarios <- get_project_scenarios(json_data, hash_ids=TRUE)
+  # get all project modules and the corresponding hash IDs
+  project_modules <- get_project_modules(json_data, hash_ids=TRUE)
 
   # get all project elements and their respective workflow codes
   project_elements <- get_project_elements(json_data, hash_ids=TRUE)
@@ -122,10 +122,10 @@ get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=wor
                                          plyr::mapvalues(tool, tool_codes$tool, tool_codes$code, warn_missing = FALSE)[grepl("^T##", wf_code)],
                                          substr(wf_code[grepl("^T##", wf_code)], 4, 10) ))) %>%
 
-    # integrate scenario id into the wf_codes were necessary
+    # integrate module id into the wf_codes were necessary
     dplyr::mutate(wf_code=replace(wf_code, grepl("^M##", wf_code),
                                   paste0("M",
-                                         plyr::mapvalues(scenario_id, project_scenarios$scenario_id, project_scenarios$code, warn_missing = FALSE)[grepl("^M##", wf_code)],
+                                         plyr::mapvalues(scenario_id, project_modules$scenario_id, project_modules$code, warn_missing = FALSE)[grepl("^M##", wf_code)],
                                          substr(wf_code[grepl("^M##", wf_code)], 4, 10) ))) %>%
 
     # prepare content for the data column depending on the event type
@@ -161,16 +161,16 @@ get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=wor
 
 
 
-    # If indicated, split workflow into multiple lists, one for each scenario
-    if (scenario_specific){
+    # If indicated, split workflow into multiple lists, one for each module
+    if (module_specific){
       full_workflow <- workflow %>%
-        dplyr::rename(scenario_time=project_time)
+        dplyr::rename(module_time=project_time)
       workflow <- list()
-      for (scenario_code in project_scenarios$code){
-        workflow[[scenario_code]] <- slice(full_workflow, c(grep(paste0("^M",scenario_code,"STR"),full_workflow$wf_code):
-                                                              grep(paste0("^M",scenario_code,"END"),full_workflow$wf_code)))
-        # Adjusting the run time to be scenario specific
-        workflow[[scenario_code]]$scenario_time <- workflow[[scenario_code]]$scenario_time - workflow[[scenario_code]]$scenario_time[1]
+      for (module_code in project_modules$code){
+        workflow[[module_code]] <- slice(full_workflow, c(grep(paste0("^M",module_code,"STR"),full_workflow$wf_code):
+                                                              grep(paste0("^M",module_code,"END"),full_workflow$wf_code)))
+        # Adjusting the run time to be module specific
+        workflow[[module_code]]$module_time <- workflow[[module_code]]$module_time - workflow[[module_code]]$module_time[1]
       }
     }
 

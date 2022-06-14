@@ -1,4 +1,4 @@
-#' Getting the scenario elements and its respective codes for the data
+#' Getting the project elements and its respective codes for the data
 #'
 #' Takes the log data from a single participation and returns a list with the names of all project elements and the respective workflow codes.
 #' These might prepared onboarding steps, emails, excel sheets, pdf, events and other elements.
@@ -6,7 +6,7 @@
 #' @param json_data Nested list including the log data for a single participation
 #' @param hash_ids If TRUE the internal hash IDs for the projct elements are included
 #'
-#' @return A dataframe including the scenario elements, their workflow codes and other relevant information
+#' @return A dataframe including all project elements, their workflow codes and other relevant information
 #'
 #' @examples
 #' \dontrun{
