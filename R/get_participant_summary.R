@@ -42,7 +42,7 @@ get_participant_summary <- function (json_data, workflow, debug_mode=FALSE){
     participant_summary <- participant_summary %>%
       mutate(salutation = json_data$surveyEvents[[1]]$data$salutation,
              first_name = json_data$surveyEvents[[1]]$data$firstName,
-             last_name <- json_data$surveyEvents[[1]]$data$lastName)
+             last_name = json_data$surveyEvents[[1]]$data$lastName)
   }
 
   # If not debugging mode: Add summary information on the specific module workflows
