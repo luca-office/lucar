@@ -49,14 +49,14 @@ get_project_elements <- function (json_data, hash_ids=FALSE) {
   return(project_elements)
 }
 
-#' Helper function to assign the running workflow code for elements of the same type
+#' Helper function to assign the running event code for elements of the same type
 #'
 #' @param relevance string indicating the relevance of a given LUCA office element
 #'
 #' @importFrom dplyr recode
 #' @importFrom stringr str_pad
 construct_element_code <- function(relevance){
-  wf_code <- paste0(recode(substr(relevance, 1, 1), "I"=0, "P"=1, "R"=2),
+  event_code <- paste0(recode(substr(relevance, 1, 1), "I"=0, "P"=1, "R"=2),
          str_pad(1:length(relevance), width=3, side="left", pad="0"))
-  return (wf_code)
+  return (event_code)
 }

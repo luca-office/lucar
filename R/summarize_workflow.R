@@ -28,14 +28,14 @@
 summarize_workflow <- function (workflow) {
 
   sum_workflow <- workflow %>%
-    # helper variable to chek if the wf_code is the same as the previous one
-    dplyr::mutate(previous_wf_code=dplyr::lag(wf_code)) %>%
+    # helper variable to chek if the event_code is the same as the previous one
+    dplyr::mutate(previous_event_code=dplyr::lag(event_code)) %>%
 
     # helper variable to later calculate the intensity (i.e. how often an event occurred)
     dplyr::mutate(event_no=1:n()) %>%
 
     # only keep those case where the current workflow code is different from the previous
-    dplyr::filter(wf_code!=previous_wf_code) %>%
+    dplyr::filter(event_code!=previous_event_code) %>%
 
     # calculation of the activity duration after summarizing evnets with identical workflows codes occurring directly after each other
     dplyr::mutate(activity_duration=project_time-dplyr::lag(project_time)) %>%
@@ -44,7 +44,7 @@ summarize_workflow <- function (workflow) {
     dplyr::mutate(intensity=dplyr::lead(event_no)-event_no) %>%
 
     # preparation of the result data set
-    dplyr::select(time, project_time, activity_duration, label, wf_code, intensity, name, usage_type)
+    dplyr::select(time, project_time, activity_duration, label, event_code, intensity, name, usage_type)
 
   return(sum_workflow)
 }
