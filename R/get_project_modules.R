@@ -5,7 +5,7 @@
 #' @param json_data Nested list including the log data for a single participation
 #' @param hash_ids If TRUE, the returned dataframe includes the hash IDs of the modules
 #'
-#' @return A dataframe including information on the project modules: module workflow code, module title, hash ID of the module, and hash ID of the sample company used in the modules
+#' @return A dataframe including information on the project modules: module code, module title, hash ID of the module, and hash ID of the sample company used in the modules
 #'
 #' @examples
 #' \dontrun{
@@ -27,7 +27,7 @@ get_project_modules <- function (json_data, hash_ids=FALSE) {
   modules <- json_data$project$projectModules %>%
     purrr::map_depth(2, ~ replace(.x, is.null(.x), NA)) %>% # replacing NULL elements by NA
     dplyr::bind_rows() %>%   # format list as dataframe
-    dplyr::mutate(code = stringr::str_pad(1:n(), width=2, side="left", pad="0")) %>% # setting the running workflow codes for each module
+    dplyr::mutate(code = stringr::str_pad(1:n(), width=2, side="left", pad="0")) %>% # setting the running event codes for each module
     dplyr::select(code, title, questionnaire_id=questionnaireId, scenario_id=scenarioId, sample_company_id=sampleCompanyId) %>% # select only relevant variables
     dplyr::select_if(hash_ids|!grepl("^id$|_id$", names(.))) # removing hash IDs if indicated by boolean argument 'hash_ids'
   return(modules)

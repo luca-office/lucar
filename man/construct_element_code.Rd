@@ -2,7 +2,7 @@
 % Please edit documentation in R/get_project_elements.R
 \name{construct_element_code}
 \alias{construct_element_code}
-\title{Helper function to assign the running workflow code for elements of the same type}
+\title{Helper function to assign the running event code for elements of the same type}
 \usage{
 construct_element_code(relevance)
 }
@@ -10,5 +10,5 @@ construct_element_code(relevance)
 \item{relevance}{string indicating the relevance of a given LUCA office element}
 }
 \description{
-Helper function to assign the running workflow code for elements of the same type
+Helper function to assign the running event code for elements of the same type
 }

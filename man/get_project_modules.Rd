@@ -12,7 +12,7 @@ get_project_modules(json_data, hash_ids = FALSE)
 \item{hash_ids}{If TRUE, the returned dataframe includes the hash IDs of the modules}
 }
 \value{
-A dataframe including information on the project modules: module workflow code, module title, hash ID of the module, and hash ID of the sample company used in the modules
+A dataframe including information on the project modules: module code, module title, hash ID of the module, and hash ID of the sample company used in the modules
 }
 \description{
 Takes the log data from a single participation and returns a table with the IDs and names of all modules in the project

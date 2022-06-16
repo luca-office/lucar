@@ -8,8 +8,8 @@ prepare_logdata(
   path = "./",
   summarize_wf = FALSE,
   unzip = FALSE,
-  workflow_codes = lucar::workflow_coding,
-  tool_codes = lucar::tool_coding,
+  event_codes = lucar::event_codes,
+  tool_codes = lucar::tool_codes,
   debug_mode = FALSE
 )
 }
@@ -20,7 +20,7 @@ prepare_logdata(
 
 \item{unzip}{If true, the function looks for zip archives located in the given path, corresponding to the naming convention for exported data from LUCA Office, and unzips these.}
 
-\item{workflow_codes}{Dataframe with the workflow coding that is used to structure the log data}
+\item{event_codes}{Dataframe with the workflow coding that is used to structure the log data}
 
 \item{tool_codes}{Dataframe with the tool coding that is used to assign each used tool to a common code}
 

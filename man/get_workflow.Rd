@@ -7,8 +7,8 @@
 get_workflow(
   json_data,
   module_specific = FALSE,
-  workflow_codes = workflow_coding,
-  tool_codes = tool_coding,
+  event_codes = lucar::event_codes,
+  tool_codes = lucar::tool_codes,
   debug_mode = FALSE
 )
 }
@@ -17,7 +17,7 @@ get_workflow(
 
 \item{module_specific}{If TRUE the workflow is split into separate lists for each module element}
 
-\item{workflow_codes}{Dataframe with the workflow coding that is used to structure the log data}
+\item{event_codes}{Dataframe with the workflow coding that is used to structure the log data}
 
 \item{tool_codes}{Dataframe with the tool coding that is used to assign each used tool to a common code}
 
