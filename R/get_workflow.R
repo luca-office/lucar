@@ -4,6 +4,7 @@
 #'
 #' @param json_data The log data for a single participation in form of a nested list
 #' @param module_specific If TRUE the workflow is split into separate lists for each module element
+#' @param idle_time Numeric describing after how many seconds an event is considered as idle.
 #' @param event_codes Dataframe with the workflow coding that is used to structure the log data
 #' @param tool_codes Dataframe with the tool coding that is used to assign each used tool to a common code
 #' @param debug_mode If TRUE the internal hash IDs for the project elements and additional lower level data are included
@@ -34,7 +35,7 @@
 #' @importFrom tibble add_column
 #' @importFrom dplyr coalesce
 #' @export
-get_workflow <- function (json_data, module_specific=FALSE, event_codes=lucar::event_codes, tool_codes=lucar::tool_codes, debug_mode=FALSE) {
+get_workflow <- function (json_data, module_specific=FALSE, idle_time=20, event_codes=lucar::event_codes, tool_codes=lucar::tool_codes, debug_mode=FALSE) {
 
 
   # TODO: Completing the data column for not yet considered events
@@ -111,7 +112,7 @@ get_workflow <- function (json_data, module_specific=FALSE, event_codes=lucar::e
     arrange(time) %>%
 
     # calculate variables for project run time and event durations
-    dplyr::mutate(project_time = time-time[1], event_duration = time-dplyr::lag(time)) %>%
+    dplyr::mutate(project_time = time-time[1], event_duration = dplyr::lead(time)-time) %>%
 
     # exclude cases with a wf code of "#" (see basic table with event codes)
     dplyr::filter(event_code!="#") %>%
@@ -160,15 +161,19 @@ get_workflow <- function (json_data, module_specific=FALSE, event_codes=lucar::e
     dplyr::select_if(debug_mode|!grepl("^event_type$|^data2$|^id$|_id$", names(.)))
 
 
+    # If indicated insert idle events, in which the participant is not doing anything anymore
+    if (idle_time) {
+      workflow <- insert_idle_events(workflow, idle_time)
+    }
 
     # If indicated, split workflow into multiple lists, one for each module
     if (module_specific){
       full_workflow <- workflow %>%
-        dplyr::rename(module_time=project_time)
+        dplyr::mutate(module_time=project_time, .after=project_time)
       workflow <- list()
       for (module_code in project_modules$code){
-        workflow[[module_code]] <- slice(full_workflow, c(grep(paste0("^M",module_code,"STR"),full_workflow$event_code):
-                                                              grep(paste0("^M",module_code,"END"),full_workflow$event_code)))
+        workflow[[module_code]] <- slice(full_workflow, c(grep(paste0("^M",module_code,"STR0000"),full_workflow$event_code):
+                                                              grep(paste0("^M",module_code,"END0000"),full_workflow$event_code)))
         # Adjusting the run time to be module specific
         workflow[[module_code]]$module_time <- workflow[[module_code]]$module_time - workflow[[module_code]]$module_time[1]
       }

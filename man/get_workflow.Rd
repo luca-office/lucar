@@ -7,6 +7,7 @@
 get_workflow(
   json_data,
   module_specific = FALSE,
+  idle_time = 20,
   event_codes = lucar::event_codes,
   tool_codes = lucar::tool_codes,
   debug_mode = FALSE
@@ -16,6 +17,8 @@ get_workflow(
 \item{json_data}{The log data for a single participation in form of a nested list}
 
 \item{module_specific}{If TRUE the workflow is split into separate lists for each module element}
+
+\item{idle_time}{Numeric describing after how many seconds an event is considered as idle.}
 
 \item{event_codes}{Dataframe with the workflow coding that is used to structure the log data}
 

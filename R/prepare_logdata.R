@@ -6,7 +6,8 @@
 #' Then provide this folder's path to the function.
 #'
 #' @param path The path to the folder including all JSON files (files in subfolders are also considered).
-#' @param summarize_wf If TRUE the events with identical task codes and directly following each other will be summarized to a single task
+#' @param compress_events If TRUE, the events with identical task codes and directly following each other will be collated to a single events
+#' @param idle_time If not FALSE, it provides the time in seconds when an event is marked as idle - i.e. the participant is not doing anything.
 #' @param unzip If true, the function looks for zip archives located in the given path, corresponding to the naming convention for exported data from LUCA Office, and unzips these.
 #' @param event_codes Dataframe with the workflow coding that is used to structure the log data
 #' @param tool_codes Dataframe with the tool coding that is used to assign each used tool to a common code
@@ -25,7 +26,7 @@
 #' @importFrom rjson fromJSON
 #' @importFrom dplyr tibble
 #' @export
-prepare_logdata <- function (path = "./", summarize_wf=FALSE, unzip = FALSE, event_codes=lucar::event_codes,
+prepare_logdata <- function (path = "./", compress_events=FALSE, idle_time=20, unzip = FALSE, event_codes=lucar::event_codes,
                              tool_codes=lucar::tool_codes, debug_mode=FALSE){
 
   # Setting 'module_specific' workflow preparation to FALSE for debugging mode and TRUE otherwise
@@ -66,11 +67,14 @@ prepare_logdata <- function (path = "./", summarize_wf=FALSE, unzip = FALSE, eve
 
     # add new list element with the workflow data, naming it with the ID of the  participation
     element_name <- sub('\\..*$', '', basename(json_file))
-    workflows[[element_name]] <- get_workflow(json_data, module_specific=module_specific, event_codes, tool_codes, debug_mode=debug_mode)
+    workflows[[element_name]] <- get_workflow(json_data, module_specific=module_specific, idle_time=idle_time, event_codes, tool_codes, debug_mode=debug_mode)
+
+
     # summarize the workflow data if indicated by the corresponding argument
-    if (summarize_wf) {
-      workflows[[element_name]] <- summarize_workflow(workflows[[element_name]])
+    if (compress_events) {
+      workflows[[element_name]] <- compress_events(workflows[[element_name]])
     }
+
 
     # construct new tibble row for the tibble including the summary data on all participants
     new_participant_summary <- get_participant_summary(json_data,  workflows[[element_name]], debug_mode)

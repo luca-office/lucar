@@ -6,7 +6,8 @@
 \usage{
 prepare_logdata(
   path = "./",
-  summarize_wf = FALSE,
+  compress_events = FALSE,
+  idle_time = 20,
   unzip = FALSE,
   event_codes = lucar::event_codes,
   tool_codes = lucar::tool_codes,
@@ -16,7 +17,9 @@ prepare_logdata(
 \arguments{
 \item{path}{The path to the folder including all JSON files (files in subfolders are also considered).}
 
-\item{summarize_wf}{If TRUE the events with identical task codes and directly following each other will be summarized to a single task}
+\item{compress_events}{If TRUE, the events with identical task codes and directly following each other will be collated to a single events}
+
+\item{idle_time}{If not FALSE, it provides the time in seconds when an event is marked as idle - i.e. the participant is not doing anything.}
 
 \item{unzip}{If true, the function looks for zip archives located in the given path, corresponding to the naming convention for exported data from LUCA Office, and unzips these.}
 

@@ -1,21 +1,21 @@
-#' Summarizing the workflow data from a single participation
+#' Compresses the event data from a single participation
 #'
-#' Takes the workflow data from a single participation and returns a summarized form,
-#' where events with identical workflow codes that occur directly after each other are
-#' summarized to a single activity. The durations are correspondingly returned on the
-#' activity level, and for each task an intensity is calculated that describes how
-#' many events occurred in the original datasets within a given activity.
+#' Takes the event data from a single participation and returns a compressed form,
+#' where events with identical codes that occur directly after each other are
+#' compressed to a single event. The durations are correspondingly adjusted,
+#' and for each compressed event an intensity is calculated that describes how
+#' many events occurred in the original form.
 #'
-#' @param workflow A list including the workflow data
+#' @param workflow A list including the event data
 #'
-#' @return A list including the summarized workflow data
+#' @return A list including the compressed event data
 #'
 #' @examples
 #' \dontrun{
 #' json_file = "participation_logdata.json"
 #' json_data <- rjson::fromJSON(json_file)
 #' workflow <- get_workflow(json_data)
-#' sum_workflow <- summarize(workflow)
+#' compressed_workflow <- compress_events(workflow)
 #' }
 #'
 #' @importFrom dplyr %>%
@@ -25,9 +25,9 @@
 #' @importFrom dplyr lead
 #' @importFrom dplyr select
 #' @export
-summarize_workflow <- function (workflow) {
+compress_events <- function (workflow) {
 
-  sum_workflow <- workflow %>%
+  compressed_workflow <- workflow %>%
     # helper variable to chek if the event_code is the same as the previous one
     dplyr::mutate(previous_event_code=dplyr::lag(event_code)) %>%
 
@@ -38,13 +38,13 @@ summarize_workflow <- function (workflow) {
     dplyr::filter(event_code!=previous_event_code) %>%
 
     # calculation of the activity duration after summarizing evnets with identical workflows codes occurring directly after each other
-    dplyr::mutate(activity_duration=project_time-dplyr::lag(project_time)) %>%
+    dplyr::mutate(event_duration=project_time-dplyr::lag(project_time)) %>%
 
     # calculation  of the intensity (i.e. how how often the summarized events occurred in the original data set directly after each other)
     dplyr::mutate(intensity=dplyr::lead(event_no)-event_no) %>%
 
     # preparation of the result data set
-    dplyr::select(time, project_time, activity_duration, label, event_code, intensity, name, usage_type)
+    dplyr::select(time, project_time, event_duration, label, event_code, intensity, name, usage_type)
 
-  return(sum_workflow)
+  return(compressed_workflow)
 }
