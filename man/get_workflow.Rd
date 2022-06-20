@@ -8,6 +8,7 @@ get_workflow(
   json_data,
   module_specific = FALSE,
   idle_time = 20,
+  mail_recipient_codes = tibble(recipient = character(), code = character()),
   event_codes = lucar::event_codes,
   tool_codes = lucar::tool_codes,
   debug_mode = FALSE
@@ -19,6 +20,8 @@ get_workflow(
 \item{module_specific}{If TRUE the workflow is split into separate lists for each module element}
 
 \item{idle_time}{Numeric describing after how many seconds an event is considered as idle.}
+
+\item{mail_recipient_codes}{A tibble including previously assigned mail recipients and their codes}
 
 \item{event_codes}{Dataframe with the workflow coding that is used to structure the log data}
 

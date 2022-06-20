@@ -5,6 +5,7 @@
 #' @param json_data The log data for a single participation in form of a nested list
 #' @param module_specific If TRUE the workflow is split into separate lists for each module element
 #' @param idle_time Numeric describing after how many seconds an event is considered as idle.
+#' @param mail_recipient_codes A tibble including previously assigned mail recipients and their codes
 #' @param event_codes Dataframe with the workflow coding that is used to structure the log data
 #' @param tool_codes Dataframe with the tool coding that is used to assign each used tool to a common code
 #' @param debug_mode If TRUE the internal hash IDs for the project elements and additional lower level data are included
@@ -34,8 +35,7 @@
 #' @importFrom dplyr arrange
 #' @importFrom tibble add_column
 #' @importFrom dplyr coalesce
-#' @export
-get_workflow <- function (json_data, module_specific=FALSE, idle_time=20, event_codes=lucar::event_codes, tool_codes=lucar::tool_codes, debug_mode=FALSE) {
+get_workflow <- function (json_data, module_specific=FALSE, idle_time=20, mail_recipient_codes=tibble(recipient=character(), code=character()), event_codes=lucar::event_codes, tool_codes=lucar::tool_codes, debug_mode=FALSE) {
 
 
   # TODO: Completing the data column for not yet considered events
@@ -61,6 +61,9 @@ get_workflow <- function (json_data, module_specific=FALSE, idle_time=20, event_
 
   # get all project elements and their respective event codes
   project_elements <- get_project_elements(json_data, hash_ids=TRUE)
+
+  # get all mail recipients the participant was starting an email and add them to the received mail_codes if they were not included yet
+  mail_recipient_codes <- add_mail_recipients(participant_events, mail_recipient_codes)
 
   # Construction of a helper dataframe that includes all variables used from the nested JSON data structure
   # it is needed to add missing variables to the temporary dataframe of the workflow (e.g. if some events did not occur for the given participant)
@@ -177,6 +180,7 @@ get_workflow <- function (json_data, module_specific=FALSE, idle_time=20, event_
         # Adjusting the run time to be module specific
         workflow[[module_code]]$module_time <- workflow[[module_code]]$module_time - workflow[[module_code]]$module_time[1]
       }
+      workflow[["mail_recipient_codes"]] <- mail_recipient_codes
     }
 
   return(workflow)

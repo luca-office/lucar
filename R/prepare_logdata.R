@@ -51,6 +51,7 @@ prepare_logdata <- function (path = "./", compress_events=FALSE, idle_time=20, u
   participant_summary <- NULL
   workflows <- list()
   unknown_events <- dplyr::tibble()
+  mail_recipient_codes <- tibble(recipient=character(), code=character())
 
   # Looping through all JSON files identified in the given path
   for (json_file in json_files){
@@ -67,8 +68,10 @@ prepare_logdata <- function (path = "./", compress_events=FALSE, idle_time=20, u
 
     # add new list element with the workflow data, naming it with the ID of the  participation
     element_name <- sub('\\..*$', '', basename(json_file))
-    workflows[[element_name]] <- get_workflow(json_data, module_specific=module_specific, idle_time=idle_time, event_codes, tool_codes, debug_mode=debug_mode)
-
+    workflows[[element_name]] <- get_workflow(json_data, module_specific=module_specific, idle_time=idle_time, mail_recipient_codes=mail_recipient_codes, event_codes, tool_codes, debug_mode=debug_mode)
+    # Assigned mail recipient codes are stored and removed from the participant's list with workflow
+    mail_recipient_codes <- workflows[[element_name]]$mail_recipient_codes
+    workflows[[element_name]]$mail_recipient_codes <- NULL
 
     # summarize the workflow data if indicated by the corresponding argument
     if (compress_events) {
@@ -103,7 +106,8 @@ prepare_logdata <- function (path = "./", compress_events=FALSE, idle_time=20, u
   prepared_logdata <- list(participation=participant_summary,
                            workflows=workflows,
                            project_elements=get_project_elements(json_data, debug_mode),
-                           project_modules=get_project_modules(json_data, debug_mode))
+                           project_modules=get_project_modules(json_data, debug_mode),
+                           mail_recipients=mail_recipient_codes)
   if (debug_mode) {
     prepared_logdata[["unknown_events"]] <- unknown_events
   }
