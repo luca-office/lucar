@@ -18,7 +18,6 @@
 #' }
 #'
 #' @importFrom dplyr tibble
-#' @export
 get_participant_summary <- function (json_data, workflow, debug_mode=FALSE){
 
   # Initialization of the dataframe row for the general answer data of the participant with its ID

@@ -24,7 +24,6 @@
 #' @importFrom dplyr lag
 #' @importFrom dplyr lead
 #' @importFrom dplyr select
-#' @export
 compress_events <- function (workflow) {
 
   compressed_workflow <- workflow %>%
