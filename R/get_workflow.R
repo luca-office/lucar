@@ -144,12 +144,17 @@ get_workflow <- function (json_data, module_specific=TRUE, idle_time=20, mail_re
                                         event_type=="UpdateSpreadsheetCellValue" ~ paste0(cellName, ": ", value),
                                         event_type=="SelectSpreadsheetCellRange" ~ paste0(startCellName, " : ", endCellName),
                                         event_type=="ViewFile" ~ mimeType,
+                                        event_type=="ViewDirectory" ~ paste0("Directory ID: ", directoryId),
                                         event_type=="OpenPdfBinary" | event_type=="SelectPdfBinary" | event_type=="SelectImageBinary" | event_type=="OpenImageBinary" | event_type=="OpenVideoBinary" | event_type=="SelectVideoBinary" ~ binaryFileTitle,
                                         event_type=="SendParticipantChatMessage" | event_type=="ReceiveSupervisorChatMessage" ~ message,
                                         event_type=="PasteFromClipboard" ~ content,
                                         event_type=="SelectQuestionnaireAnswer" ~ paste0(answerPosition, " ('", value, "')"),
+                                        event_type=="EvaluateIntervention" ~ paste0("Occurred: ", occurred, ", Intervention ID: ", interventionId),
+                                        event_type=="OpenTextDocument" ~ textDocumentTitle,
+                                        event_type=="UpdateTextDocumentContent" ~ content,
+                                        event_type=="ErpSelectCell" ~ paste0("Table type: ", tableType, ", Column: ", columnName, ", Row index: ", rowId, ", Value: ", value),
+                                        event_type=="ErpSelectTable" ~ paste0("Table name: ", tableName, ", Table type: ", tableType),
                                         # TODO: Completing the data column for not yet considered events
-                                        #event_type=="" ~ value,
                                         #event_type=="" ~ value,
                                         event_type=="UpdateEmail" ~ paste0("To: ", to, "; CC: ", cc, "; Subject: ", subject)
                                         )) %>%
