@@ -1,8 +1,9 @@
 Package: lucar
 Title: Prepare Data from the LUCA Office Simulation
-Version: 0.0.7
+Version: 0.0.8
 Authors@R: person("Steffen", "Brandt", email="steffen@opencampus.sh", role = c("aut", "cre"), comment = c(ORCID = "0000-0001-5410-7186"))
-Description: Provides functions to prepare the JSON log data files from the LUCA Office application.
+Maintainer: Steffen Brandt <steffen@opencampus.sh>
+Description: Provides functions to prepare the JSON log data from the LUCA Office application.
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

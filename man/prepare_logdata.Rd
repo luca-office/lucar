@@ -6,25 +6,28 @@
 \usage{
 prepare_logdata(
   path = "./",
-  summarize_wf = FALSE,
+  compress_events = FALSE,
+  idle_time = 20,
   unzip = FALSE,
-  workflow_codes = lucar::workflow_coding,
-  tool_codes = lucar::tool_coding,
+  event_codes = lucar::event_codes,
+  tool_codes = lucar::tool_codes,
   debug_mode = FALSE
 )
 }
 \arguments{
 \item{path}{The path to the folder including all JSON files (files in subfolders are also considered).}
 
-\item{summarize_wf}{If TRUE the events with identical task codes and directly following each other will be summarized to a single task}
+\item{compress_events}{If TRUE, the events with identical task codes and directly following each other will be collated to a single events}
+
+\item{idle_time}{If not FALSE, it provides the time in seconds when an event is marked as idle - i.e. the participant is not doing anything.}
 
 \item{unzip}{If true, the function looks for zip archives located in the given path, corresponding to the naming convention for exported data from LUCA Office, and unzips these.}
 
-\item{workflow_codes}{Dataframe with the workflow coding that is used to structure the log data}
+\item{event_codes}{Dataframe with the workflow coding that is used to structure the log data}
 
 \item{tool_codes}{Dataframe with the tool coding that is used to assign each used tool to a common code}
 
-\item{debug_mode}{If TRUE the results include the internal hash IDs for the project elements are included and a tibble including unknown event types (if there were any). If 'scenario_specific' is set to TRUE it will be enforced to 'FALSE'.}
+\item{debug_mode}{If TRUE the results include the internal hash IDs for the project elements are included and a tibble including unknown event types (if there were any). If 'module_specific' is set to TRUE it will be enforced to 'FALSE'.}
 }
 \value{
 A dataframe including the prepared data from all JSON files

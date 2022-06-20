@@ -6,18 +6,24 @@
 \usage{
 get_workflow(
   json_data,
-  scenario_specific = FALSE,
-  workflow_codes = workflow_coding,
-  tool_codes = tool_coding,
+  module_specific = TRUE,
+  idle_time = 20,
+  mail_recipient_codes = tibble(recipient = character(), code = character()),
+  event_codes = lucar::event_codes,
+  tool_codes = lucar::tool_codes,
   debug_mode = FALSE
 )
 }
 \arguments{
 \item{json_data}{The log data for a single participation in form of a nested list}
 
-\item{scenario_specific}{If TRUE the workflow is split into separate lists for each scenario element}
+\item{module_specific}{If TRUE the workflow is split into separate lists for each module element}
 
-\item{workflow_codes}{Dataframe with the workflow coding that is used to structure the log data}
+\item{idle_time}{Numeric describing after how many seconds an event is considered as idle.}
+
+\item{mail_recipient_codes}{A tibble including previously assigned mail recipients and their codes}
+
+\item{event_codes}{Dataframe with the workflow coding that is used to structure the log data}
 
 \item{tool_codes}{Dataframe with the tool coding that is used to assign each used tool to a common code}
 

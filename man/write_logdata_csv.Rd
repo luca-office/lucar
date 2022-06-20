@@ -21,8 +21,8 @@ A list including the prepared data from all JSON files
 After preparing (JSON) log data from LUCA office using  \code{prepare_data()}, you can
 use \code{write_logdata_csv()} or \code{write_logdata_csv2()} to write the workflow data, the
 participation data including aggregated information on the person level as well as
-two tables including information on the files existing in the scenarios and the
-names of the scenarios themselves.
+two tables including information on the files existing in the modules and the
+names of the modules themselves.
 }
 \examples{
 

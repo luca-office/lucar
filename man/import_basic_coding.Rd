@@ -5,7 +5,7 @@
 \title{Helper function to import tables including the basic coding information and
 add them to the package project.}
 \usage{
-import_basic_coding(file = "dev/basic_coding.xlsx")
+import_basic_coding(file = "dev/basic_codes.xlsx")
 }
 \arguments{
 \item{file}{Name of the Excel file including the tables with the standard basic workflow codes, the standard tool codes and example table for defining project specific document types (e.g. considering their general content)}

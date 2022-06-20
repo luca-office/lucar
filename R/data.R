@@ -2,18 +2,18 @@
 #'
 #' A tibble providing the basic workflow codes and descriptions for the different event types in the LUCA Office log data.
 #'
-#' Events with wf_codes defined as '#' are ignored from the preparation of the workflow data
+#' Events with event_codes defined as '#' are ignored from the preparation of the workflow data
 #'
 #' @format A tibble with XX rows and YY variables:
 #' \describe{
 #'   \item{event_type}{all of the currently 44 different log event types}
 #'   \item{label}{label for the event type}
-#'   \item{wf_code}{a code of 9 uppercase characters characterizing a given log event}
+#'   \item{event_code}{a code of 9 uppercase characters characterizing a given log event}
 #'   \item{data_example}{supplement data for each log event, in json format}
 #'   \item{index}{running number of the event as given in the original log table}
 #' }
 #' @source Constructed manually based on the unique event types provided in the log data of LUCA Office.
-"workflow_coding"
+"event_codes"
 
 #' Standard tool coding.
 #'
@@ -26,7 +26,7 @@
 #'   \item{label}{a label for the tool}
 #' }
 #' @source Constructed manually based on the unique event types provided in the log data of LUCA Office.
-"tool_coding"
+"tool_codes"
 
 
 #' Helper function to construct a table including the information for the workflow coding
@@ -70,13 +70,13 @@ write_unique_events <- function (events, file="dev/unique_events.csv") {
 #'
 #' @importFrom readxl read_excel
 #' @importFrom usethis use_data
-import_basic_coding <- function (file="dev/basic_coding.xlsx") {
+import_basic_coding <- function (file="dev/basic_codes.xlsx") {
 
   # Importing standard basic worklflow codes as data
-  workflow_coding <- readxl::read_excel("dev/basic_coding.xlsx", sheet = "workflow_coding")
-  usethis::use_data(workflow_coding, overwrite=TRUE)
+  event_codes <- readxl::read_excel("dev/basic_codes.xlsx", sheet = "event_codes")
+  usethis::use_data(event_codes, overwrite=TRUE)
   # Importing standard tool codes as data
-  tool_coding <- readxl::read_excel("dev/basic_coding.xlsx", sheet = "tool_coding")
-  usethis::use_data(tool_coding, overwrite=TRUE)
+  tool_codes <- readxl::read_excel("dev/basic_codes.xlsx", sheet = "tool_codes")
+  usethis::use_data(tool_codes, overwrite=TRUE)
 
 }

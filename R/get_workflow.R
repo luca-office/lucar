@@ -3,8 +3,10 @@
 #' Takes the log data from a single participation and returns a list describing the workflow.
 #'
 #' @param json_data The log data for a single participation in form of a nested list
-#' @param scenario_specific If TRUE the workflow is split into separate lists for each scenario element
-#' @param workflow_codes Dataframe with the workflow coding that is used to structure the log data
+#' @param module_specific If TRUE the workflow is split into separate lists for each module element
+#' @param idle_time Numeric describing after how many seconds an event is considered as idle.
+#' @param mail_recipient_codes A tibble including previously assigned mail recipients and their codes
+#' @param event_codes Dataframe with the workflow coding that is used to structure the log data
 #' @param tool_codes Dataframe with the tool coding that is used to assign each used tool to a common code
 #' @param debug_mode If TRUE the internal hash IDs for the project elements and additional lower level data are included
 #'
@@ -33,8 +35,7 @@
 #' @importFrom dplyr arrange
 #' @importFrom tibble add_column
 #' @importFrom dplyr coalesce
-#' @export
-get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=workflow_coding, tool_codes=tool_coding, debug_mode=FALSE) {
+get_workflow <- function (json_data, module_specific=TRUE, idle_time=20, mail_recipient_codes=tibble(recipient=character(), code=character()), event_codes=lucar::event_codes, tool_codes=lucar::tool_codes, debug_mode=FALSE) {
 
 
   # TODO: Completing the data column for not yet considered events
@@ -42,10 +43,11 @@ get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=wor
 
   # return empty list if no events were recorded
   if (length(json_data$surveyEvents)==0) {
+    return(list(mail_recipient_codes=mail_recipient_codes))
   }
 
   # formatting the events into a tibble
-  events <-
+  participant_events <-
     # transforming nested list into a iibble
     dplyr::as_tibble(data.frame(matrix(unlist(json_data$surveyEvents, recursive=FALSE), nrow=length(json_data$surveyEvents), byrow=TRUE))) %>%
     # retrieving original column names
@@ -55,11 +57,14 @@ get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=wor
     # rename column
     dplyr::mutate(event_type=eventType)
 
-  # get all project scenarios and the corresponding hash IDs
-  project_scenarios <- get_project_scenarios(json_data, hash_ids=TRUE)
+  # get all project modules and the corresponding hash IDs
+  project_modules <- get_project_modules(json_data, hash_ids=TRUE)
 
-  # get all project elements and their respective workflow codes
+  # get all project elements and their respective event codes
   project_elements <- get_project_elements(json_data, hash_ids=TRUE)
+
+  # get all mail recipients the participant was starting an email and add them to the received mail_codes if they were not included yet
+  mail_recipient_codes <- add_mail_recipients(participant_events, mail_recipient_codes)
 
   # Construction of a helper dataframe that includes all variables used from the nested JSON data structure
   # it is needed to add missing variables to the temporary dataframe of the workflow (e.g. if some events did not occur for the given participant)
@@ -68,14 +73,14 @@ get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=wor
                                  spreadsheetTitle=NA_character_, binaryFileTitle=NA_character_, startCellName=NA_character_,
                                  endCellName=NA_character_, cellName=NA_character_, to=NA_character_, cc=NA_character_, subject=NA_character_,
                                  tool=NA_character_, directory=NA_character_, endType=NA_character_, answerPosition=NA_character_,
-                                 value=NA_character_)
+                                 value=NA_character_, spreadsheetId=NA_character_)
 
 
   workflow <-
-    # match events with the basic_wf_codes
-    dplyr::left_join(events, workflow_codes, by="event_type") %>%
+    # match events with the basic_event_codes
+    dplyr::left_join(participant_events, event_codes, by="event_type") %>%
     # exclude irrelevant variables
-    dplyr::select(invitation_id=invitationId, survey_id=surveyId, timestamp, label, event_type, wf_code, data=data, index=index.x) %>%
+    dplyr::select(invitation_id=invitationId, survey_id=surveyId, timestamp, label, event_type, event_code, data=data, index=index.x) %>%
     # unnest columns with ids
     dplyr::mutate(invitation_id=unlist(invitation_id), survey_id=unlist(survey_id)) %>%
     # format time variable
@@ -104,29 +109,29 @@ get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=wor
                   element_code=dplyr::coalesce(!!!syms(grep("^element_code",names(.), value=TRUE))),
                   element_code=replace(element_code, is.na(element_code), "")) %>%
 
-    # join basic wf codes with individual project element code
-    dplyr::mutate(wf_code=paste0(wf_code, element_code)) %>%
+    # join basic event codes with individual project element code
+    dplyr::mutate(event_code=paste0(event_code, element_code)) %>%
 
     # Order events according to their time stamps (this step might be unnecessary once the log data generation is corrected in LUCA office)
     arrange(time) %>%
 
     # calculate variables for project run time and event durations
-    dplyr::mutate(project_time = time-time[1], event_duration = time-dplyr::lag(time)) %>%
+    dplyr::mutate(project_time = time-time[1], event_duration = dplyr::lead(time)-time) %>%
 
-    # exclude cases with a wf code of "#" (see basic table with wf codes)
-    dplyr::filter(wf_code!="#") %>%
+    # exclude cases with a wf code of "#" (see basic table with event codes)
+    dplyr::filter(event_code!="#") %>%
 
-    # integrate tool id into the wf_codes were necessary
-    dplyr::mutate(wf_code=replace(wf_code, grepl("^T##", wf_code),
+    # integrate tool id into the event_codes were necessary
+    dplyr::mutate(event_code=replace(event_code, grepl("^T##", event_code),
                                   paste0("T",
-                                         plyr::mapvalues(tool, tool_codes$tool, tool_codes$code, warn_missing = FALSE)[grepl("^T##", wf_code)],
-                                         substr(wf_code[grepl("^T##", wf_code)], 4, 10) ))) %>%
+                                         plyr::mapvalues(tool, tool_codes$tool, tool_codes$code, warn_missing = FALSE)[grepl("^T##", event_code)],
+                                         substr(event_code[grepl("^T##", event_code)], 4, 10) ))) %>%
 
-    # integrate scenario id into the wf_codes were necessary
-    dplyr::mutate(wf_code=replace(wf_code, grepl("^M##", wf_code),
+    # integrate module id into the event_codes were necessary
+    dplyr::mutate(event_code=replace(event_code, grepl("^M##", event_code),
                                   paste0("M",
-                                         plyr::mapvalues(scenario_id, project_scenarios$scenario_id, project_scenarios$code, warn_missing = FALSE)[grepl("^M##", wf_code)],
-                                         substr(wf_code[grepl("^M##", wf_code)], 4, 10) ))) %>%
+                                         plyr::mapvalues(scenario_id, project_modules$scenario_id, project_modules$code, warn_missing = FALSE)[grepl("^M##", event_code)],
+                                         substr(event_code[grepl("^M##", event_code)], 4, 10) ))) %>%
 
     # prepare content for the data column depending on the event type
     dplyr::mutate(data=dplyr::case_when(event_type=="StoreParticipantData" ~ paste0("Salutation: ", salutation, "; First name: ", firstName, "; Last name: ", lastName),
@@ -154,24 +159,34 @@ get_workflow <- function (json_data, scenario_specific=FALSE, workflow_codes=wor
 
     # select final set of variables
     dplyr::select(invitation_id, survey_id, scenario_id, time, project_time, event_duration,
-           label, wf_code, data, event_type, data2, binary_file_id, email_id, spreadsheet_id, file_id) %>%
+           label, event_code, data, event_type, data2, binary_file_id, email_id, spreadsheet_id, file_id) %>%
 
     # Removing hash IDs and debugging variables if 'debug_mode' is set to `FALSE`
     dplyr::select_if(debug_mode|!grepl("^event_type$|^data2$|^id$|_id$", names(.)))
 
 
+    # If indicated insert idle events, in which the participant is not doing anything anymore
+    if (idle_time) {
+      workflow <- insert_idle_events(workflow, idle_time)
+    }
 
-    # If indicated, split workflow into multiple lists, one for each scenario
-    if (scenario_specific){
+    # If indicated, split workflow into multiple lists, one for each module
+    if (module_specific){
       full_workflow <- workflow %>%
-        dplyr::rename(scenario_time=project_time)
+        dplyr::mutate(module_time=project_time, .after=project_time)
       workflow <- list()
-      for (scenario_code in project_scenarios$code){
-        workflow[[scenario_code]] <- slice(full_workflow, c(grep(paste0("^M",scenario_code,"STR"),full_workflow$wf_code):
-                                                              grep(paste0("^M",scenario_code,"END"),full_workflow$wf_code)))
-        # Adjusting the run time to be scenario specific
-        workflow[[scenario_code]]$scenario_time <- workflow[[scenario_code]]$scenario_time - workflow[[scenario_code]]$scenario_time[1]
+      for (module_code in project_modules$code){
+        first_module_event <- grep(paste0("^M",module_code,"STR0000"),full_workflow$event_code)
+        last_module_event <- grep(paste0("^M",module_code,"END0000"), full_workflow$event_code)
+        # Checking if the participation was interrupted before the regular end and the final ending event is not found
+        last_module_event <- ifelse (length(last_module_event)==0, length(full_workflow$event_code), last_module_event)
+        # Assigning the events to the given module
+        workflow[[module_code]] <- slice(full_workflow, c(first_module_event:last_module_event))
+
+        # Adjusting the run time to be module specific
+        workflow[[module_code]]$module_time <- workflow[[module_code]]$module_time - workflow[[module_code]]$module_time[1]
       }
+      workflow[["mail_recipient_codes"]] <- mail_recipient_codes
     }
 
   return(workflow)
