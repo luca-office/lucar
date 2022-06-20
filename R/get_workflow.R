@@ -35,7 +35,7 @@
 #' @importFrom dplyr arrange
 #' @importFrom tibble add_column
 #' @importFrom dplyr coalesce
-get_workflow <- function (json_data, module_specific=FALSE, idle_time=20, mail_recipient_codes=tibble(recipient=character(), code=character()), event_codes=lucar::event_codes, tool_codes=lucar::tool_codes, debug_mode=FALSE) {
+get_workflow <- function (json_data, module_specific=TRUE, idle_time=20, mail_recipient_codes=tibble(recipient=character(), code=character()), event_codes=lucar::event_codes, tool_codes=lucar::tool_codes, debug_mode=FALSE) {
 
 
   # TODO: Completing the data column for not yet considered events
@@ -43,6 +43,7 @@ get_workflow <- function (json_data, module_specific=FALSE, idle_time=20, mail_r
 
   # return empty list if no events were recorded
   if (length(json_data$surveyEvents)==0) {
+    return(list(mail_recipient_codes=mail_recipient_codes))
   }
 
   # formatting the events into a tibble
@@ -72,7 +73,7 @@ get_workflow <- function (json_data, module_specific=FALSE, idle_time=20, mail_r
                                  spreadsheetTitle=NA_character_, binaryFileTitle=NA_character_, startCellName=NA_character_,
                                  endCellName=NA_character_, cellName=NA_character_, to=NA_character_, cc=NA_character_, subject=NA_character_,
                                  tool=NA_character_, directory=NA_character_, endType=NA_character_, answerPosition=NA_character_,
-                                 value=NA_character_)
+                                 value=NA_character_, spreadsheetId=NA_character_)
 
 
   workflow <-
@@ -175,8 +176,13 @@ get_workflow <- function (json_data, module_specific=FALSE, idle_time=20, mail_r
         dplyr::mutate(module_time=project_time, .after=project_time)
       workflow <- list()
       for (module_code in project_modules$code){
-        workflow[[module_code]] <- slice(full_workflow, c(grep(paste0("^M",module_code,"STR0000"),full_workflow$event_code):
-                                                              grep(paste0("^M",module_code,"END0000"),full_workflow$event_code)))
+        first_module_event <- grep(paste0("^M",module_code,"STR0000"),full_workflow$event_code)
+        last_module_event <- grep(paste0("^M",module_code,"END0000"), full_workflow$event_code)
+        # Checking if the participation was interrupted before the regular end and the final ending event is not found
+        last_module_event <- ifelse (length(last_module_event)==0, length(full_workflow$event_code), last_module_event)
+        # Assigning the events to the given module
+        workflow[[module_code]] <- slice(full_workflow, c(first_module_event:last_module_event))
+
         # Adjusting the run time to be module specific
         workflow[[module_code]]$module_time <- workflow[[module_code]]$module_time - workflow[[module_code]]$module_time[1]
       }

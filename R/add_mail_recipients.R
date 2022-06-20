@@ -13,16 +13,23 @@
 #' @importFrom dplyr %>%
 add_mail_recipients <- function (participant_events, mail_recipient_codes=tibble(recipient=character(), code=character())) {
 
-  # Create participant's recipient list
+  # Complete participant's recipient list
   completed_mail_recipient_codes <- participant_events %>%
     dplyr::filter(eventType=="UpdateEmail") %>%
     tidyr::unnest_wider(data) %>%
+    dplyr::arrange(desc(timestamp)) %>%
+    dplyr::distinct(id, .keep_all=TRUE) %>%
     dplyr::distinct(to) %>%
     dplyr::filter(to!="") %>%
     dplyr::select(recipient=to) %>%
     dplyr::full_join(mail_recipient_codes, by="recipient") %>%
-    dplyr::arrange(code) %>%
-    dplyr::mutate(code=coalesce(code, stringr::str_pad(1:n(), width=2, side="left", pad="0")))
+    dplyr::arrange(code)
+
+  # Check whether the table is still empty to avoid errors in coalesce()
+    if (nrow(completed_mail_recipient_codes)>0){
+      completed_mail_recipient_codes <- completed_mail_recipient_codes %>%
+        dplyr::mutate(code=coalesce(code, stringr::str_pad(1:n(), width=2, side="left", pad="0")))
+    }
 
   return(completed_mail_recipient_codes)
 }

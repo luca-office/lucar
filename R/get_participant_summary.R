@@ -29,11 +29,12 @@ get_participant_summary <- function (json_data, workflow, debug_mode=FALSE){
       mutate(token = json_data$surveyInvitation$token,
              account_participation = json_data$surveyInvitation$isUserAccountParticipation,
              open_participation = json_data$surveyInvitation$isOpenParticipation,
-             did_participate = as.logical(length(json_data$surveyEvents)>0),
-             project_start = getTime(json_data$surveyInvitation$firstSurveyEventTimestamp),
-             project_end = getTime(json_data$surveyInvitation$lastSurveyEventTimestamp)) %>%
-      # Remove ID variable if indicated by Boolean 'hash_ids'
-      dplyr::select_if(debug_mode|!grepl("^id$|Id$", names(.)))
+             did_participate = as.logical(length(json_data$surveyEvents)>0)
+             #project_start = getTime(json_data$surveyInvitation$firstSurveyEventTimestamp),
+             #project_end = getTime(json_data$surveyInvitation$lastSurveyEventTimestamp)
+             ) %>%
+    # Remove ID variable if indicated by Boolean 'hash_ids'
+    dplyr::select_if(debug_mode|!grepl("^id$|Id$", names(.)))
 
   # Checking if invited participant actually participated
   # (to avoid errors by calling non existent variables)
@@ -64,6 +65,12 @@ get_participant_summary <- function (json_data, workflow, debug_mode=FALSE){
 #' @param tzone Time zone to be used for the formatting of the time value
 #'
 getTime <- function(time, tzone="CET"){
-  return(lubridate::with_tz(lubridate::ymd_hms(time), tzone))
+  if (is.null(time)){
+    print(time)
+    return(as.POSIXct(NA))
+  } else {
+    print(time)
+    return(lubridate::with_tz(lubridate::ymd_hms(time), tzone))
+  }
 }
 

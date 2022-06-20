@@ -6,7 +6,7 @@
 \usage{
 get_workflow(
   json_data,
-  module_specific = FALSE,
+  module_specific = TRUE,
   idle_time = 20,
   mail_recipient_codes = tibble(recipient = character(), code = character()),
   event_codes = lucar::event_codes,
