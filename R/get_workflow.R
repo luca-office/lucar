@@ -73,7 +73,9 @@ get_workflow <- function (json_data, module_specific=TRUE, idle_time=20, mail_re
                                  spreadsheetTitle=NA_character_, binaryFileTitle=NA_character_, startCellName=NA_character_,
                                  endCellName=NA_character_, cellName=NA_character_, to=NA_character_, cc=NA_character_, subject=NA_character_,
                                  tool=NA_character_, directory=NA_character_, endType=NA_character_, answerPosition=NA_character_,
-                                 value=NA_character_, spreadsheetId=NA_character_)
+                                 value=NA_character_, spreadsheetId=NA_character_, occurred=NA_character_, interventionId=NA_character_,
+                                 directoryId=NA_character_, textDocumentTitle=NA_character_, tableType=NA_character_, columnName=NA_character_,
+                                 rowId=NA_character_, tableName=NA_character_)
 
 
   workflow <-
