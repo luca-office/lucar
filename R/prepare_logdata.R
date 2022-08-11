@@ -6,7 +6,7 @@
 #' Then provide this folder's path to the function.
 #'
 #' @param path The path to the folder including all JSON files (files in subfolders are also considered).
-#' @param compress_events If TRUE, the events with identical task codes and directly following each other will be collated to a single events
+#' @param aggregate_events If TRUE, the events with identical task codes and directly following each other will be collated to a single events
 #' @param idle_time If not FALSE, it provides the time in seconds when an event is marked as idle - i.e. the participant is not doing anything.
 #' @param unzip If true, the function looks for zip archives located in the given path, corresponding to the naming convention for exported data from LUCA Office, and unzips these.
 #' @param event_codes Dataframe with the workflow coding that is used to structure the log data
@@ -26,7 +26,7 @@
 #' @importFrom rjson fromJSON
 #' @importFrom dplyr tibble
 #' @export
-prepare_logdata <- function (path = "./", compress_events=FALSE, idle_time=20, unzip = FALSE, event_codes=lucar::event_codes,
+prepare_logdata <- function (path = "./", aggregate_events=FALSE, idle_time=20, unzip = FALSE, event_codes=lucar::event_codes,
                              tool_codes=lucar::tool_codes, debug_mode=FALSE){
 
   # Setting 'module_specific' workflow preparation to FALSE for debugging mode and TRUE otherwise
@@ -74,8 +74,8 @@ prepare_logdata <- function (path = "./", compress_events=FALSE, idle_time=20, u
     workflows[[element_name]]$mail_recipient_codes <- NULL
 
     # summarize the workflow data if indicated by the corresponding argument
-    if (compress_events) {
-      workflows[[element_name]] <- compress_events(workflows[[element_name]])
+    if (aggregate_events) {
+      workflows[[element_name]] <- aggregate_events(workflows[[element_name]])
     }
 
 

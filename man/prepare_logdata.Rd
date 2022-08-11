@@ -6,7 +6,7 @@
 \usage{
 prepare_logdata(
   path = "./",
-  compress_events = FALSE,
+  aggregate_events = FALSE,
   idle_time = 20,
   unzip = FALSE,
   event_codes = lucar::event_codes,
@@ -17,7 +17,7 @@ prepare_logdata(
 \arguments{
 \item{path}{The path to the folder including all JSON files (files in subfolders are also considered).}
 
-\item{compress_events}{If TRUE, the events with identical task codes and directly following each other will be collated to a single events}
+\item{aggregate_events}{If TRUE, the events with identical task codes and directly following each other will be collated to a single events}
 
 \item{idle_time}{If not FALSE, it provides the time in seconds when an event is marked as idle - i.e. the participant is not doing anything.}
 

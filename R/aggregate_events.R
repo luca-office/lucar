@@ -1,9 +1,9 @@
-#' Compresses the event data from a single participation
+#' Aggregates the event data from a single participation
 #'
-#' Takes the event data from a single participation and returns a compressed form,
+#' Takes the event data from a single participation and returns an aggregated form,
 #' where events with identical codes that occur directly after each other are
-#' compressed to a single event. The durations are correspondingly adjusted,
-#' and for each compressed event an intensity is calculated that describes how
+#' aggregated to a single event. The duration values are correspondingly adjusted,
+#' and for each aggregated event an intensity is calculated that describes how
 #' many events occurred in the original form.
 #'
 #' @param workflow A list including the event data
@@ -15,7 +15,7 @@
 #' json_file = "participation_logdata.json"
 #' json_data <- rjson::fromJSON(json_file)
 #' workflow <- get_workflow(json_data)
-#' compressed_workflow <- compress_events(workflow)
+#' compressed_workflow <- aggregate_events(workflow)
 #' }
 #'
 #' @importFrom dplyr %>%
@@ -24,9 +24,9 @@
 #' @importFrom dplyr lag
 #' @importFrom dplyr lead
 #' @importFrom dplyr select
-compress_events <- function (workflow) {
+aggregate_events <- function (workflow) {
 
-  compressed_workflow <- workflow %>%
+  aggregated_workflow <- workflow %>%
     # helper variable to chek if the event_code is the same as the previous one
     dplyr::mutate(previous_event_code=dplyr::lag(event_code)) %>%
 
@@ -45,5 +45,5 @@ compress_events <- function (workflow) {
     # preparation of the result data set
     dplyr::select(time, project_time, event_duration, label, event_code, intensity, name, usage_type)
 
-  return(compressed_workflow)
+  return(aggregated_workflow)
 }
