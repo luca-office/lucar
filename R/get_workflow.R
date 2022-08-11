@@ -97,7 +97,6 @@ get_workflow <- function (json_data, module_specific=TRUE, idle_time=20, mail_re
     tibble::add_column(!!!needed_variables[!names(needed_variables) %in% names(.)]) %>%
     # renaming ID variables according to naming conventions
     dplyr::rename(scenario_id=scenarioId, binary_file_id=binaryFileId, spreadsheet_id=spreadsheetId, file_id=fileId, email_id=emailId) %>%
-
     # match event ids with the ids of the project elements
     dplyr::left_join(select(project_elements,-c("binary_file_id","spreadsheet_id")), by="id", na_matches="never") %>%
     dplyr::left_join(select(project_elements,-c("id","spreadsheet_id")), by="binary_file_id", na_matches="never") %>%
@@ -123,7 +122,12 @@ get_workflow <- function (json_data, module_specific=TRUE, idle_time=20, mail_re
     # exclude cases with a wf code of "#" (see basic table with event codes)
     dplyr::filter(event_code!="#") %>%
 
-    # integrate tool id into the event_codes were necessary
+
+    # if no tool value is provided impute the value from mimeType
+    dplyr::mutate(tool=replace(tool, is.na(tool)&!is.na(mimeType), mimeType[is.na(tool)&!is.na(mimeType)])) %>%
+    # replace the imputed mimeType values acording to the values used in the tool variable
+    dplyr::mutate(tool=recode(tool, ApplicationPdf="PdfViewer", ImageJpeg="ImageViewer", Spreadsheet="SpreadsheetEditor", VideoMp4="VideoPlayer")) %>%
+    # integrate corresponding tool id into all event_codes were necessary (starting with "T##")
     dplyr::mutate(event_code=replace(event_code, grepl("^T##", event_code),
                                   paste0("T",
                                          plyr::mapvalues(tool, tool_codes$tool, tool_codes$code, warn_missing = FALSE)[grepl("^T##", event_code)],

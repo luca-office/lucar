@@ -39,3 +39,4 @@ insert_idle_events <- function (workflow, idle_time=5) {
 
   return(result_workflow)
 }
+
