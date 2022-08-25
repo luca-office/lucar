@@ -1,7 +1,7 @@
-#' Reads all JSON files into a single dataframe
+#' Prepares JSON files from a LUCA Office Administration into a List with Several Dataframes
 #'
 #' JSON files exported from the LUCA office simulation into a dedicated folder
-#' are read into a dataframe.
+#' are prepared and returned as a list including several result dataframes.
 #' Best is to download all zip files into a dedicated folder and unpack them in that same folder.
 #' Then provide this folder's path to the function.
 #'
@@ -20,13 +20,13 @@
 #' # Searches in the current working directory and all subdirectories for log data from LUCA office
 #' # and prepares the data in a structure suitable for further analyses
 #' \dontrun{
-#' logdata <- prepare_logdata()
+#' logdata <- prepare_data()
 #' }
 #'
 #' @importFrom rjson fromJSON
 #' @importFrom dplyr tibble
 #' @export
-prepare_logdata <- function (path = "./", aggregate_events=FALSE, idle_time=20, unzip = FALSE, event_codes=lucar::event_codes,
+prepare_data <- function (path = "./", aggregate_events=FALSE, idle_time=20, unzip = FALSE, event_codes=lucar::event_codes,
                              tool_codes=lucar::tool_codes, debug_mode=FALSE){
 
   # Setting 'module_specific' workflow preparation to FALSE for debugging mode and TRUE otherwise
@@ -47,11 +47,13 @@ prepare_logdata <- function (path = "./", aggregate_events=FALSE, idle_time=20, 
   # Get all JSON files located in the given path (including all subfolders)
   json_files <- grep("\\.json$", list.files(path, full.names=TRUE, recursive=TRUE), value=TRUE)
 
-  # Initialization of the objects for the table including the participants_summary
-  participant_summary <- NULL
-  workflows <- list()
+  # Initialization of objects for the result object
+  logdata_summary <- NULL
+  event_list <- list()
   unknown_events <- dplyr::tibble()
   mail_recipient_codes <- tibble(recipient=character(), code=character())
+
+  questionnaire_elements <- get_questionnaire_elements(json_data[[1]], hash_ids=FALSE)
 
   # Looping through all JSON files identified in the given path
   for (json_file in json_files){
@@ -68,43 +70,43 @@ prepare_logdata <- function (path = "./", aggregate_events=FALSE, idle_time=20, 
 
     # add new list element with the workflow data, naming it with the ID of the  participation
     element_name <- sub('\\..*$', '', basename(json_file))
-    workflows[[element_name]] <- get_workflow(json_data, module_specific=module_specific, idle_time=idle_time, mail_recipient_codes=mail_recipient_codes, event_codes, tool_codes, debug_mode=debug_mode)
-    # Assigned mail recipient codes are stored and removed from the participant's list with workflow
-    mail_recipient_codes <- workflows[[element_name]]$mail_recipient_codes
-    workflows[[element_name]]$mail_recipient_codes <- NULL
+    event_list[[element_name]] <- get_event_list(json_data, questionnaire_codes, module_specific=module_specific, idle_time=idle_time, mail_recipient_codes=mail_recipient_codes, event_codes, tool_codes, debug_mode=debug_mode)
+    # Assigned mail recipient codes are stored in an extra variable and removed from the participant's workflow info
+    mail_recipient_codes <- event_list[[element_name]]$mail_recipient_codes
+    event_list[[element_name]]$mail_recipient_codes <- NULL
 
     # summarize the workflow data if indicated by the corresponding argument
     if (aggregate_events) {
-      workflows[[element_name]] <- aggregate_events(workflows[[element_name]])
+      event_list[[element_name]] <- aggregate_events(event_list[[element_name]])
     }
 
 
-    # construct new tibble row for the tibble including the summary data on all participants
-    new_participant_summary <- get_participant_summary(json_data,  workflows[[element_name]], debug_mode)
-
+    # construct new tibble row for the tibble including the summarized logdata for all participants
+    new_logdata_summary <- get_logdata_summary(json_data,  event_list[[element_name]], debug_mode)
     # add new participant data to the already existing one
-    if (is.null(participant_summary)){
-      participant_summary <- new_participant_summary
+    if (is.null(logdata_summary)){
+      logdata_summary <- new_logdata_summary
     } else {
-      participant_summary <- dplyr::full_join(participant_summary, new_participant_summary, by=intersect(names(participant_summary), names(new_participant_summary)))
+      logdata_summary <- dplyr::full_join(logdata_summary, new_logdata_summary, by=intersect(names(logdata_summary), names(new_logdata_summary)))
     }
 
 
     # in debugging mode: collect incomplete event_codes, e.g. due to unknown events or unmatched id's
     if (debug_mode) {
-      incomplete_codes <- nchar(workflows[[element_name]]$event_code)!=10
-      unknown_events <- rbind(unknown_events, workflows[[element_name]][incomplete_codes,])
+      incomplete_codes <- nchar(event_list[[element_name]]$event_code)!=10
+      unknown_events <- rbind(unknown_events, event_list[[element_name]][incomplete_codes,])
       unknown_events <- unknown_events[!duplicated(unknown_events$event_type),]
     }
   }
 
-  if (is.null(participant_summary)){
+  if (is.null(logdata_summary)){
     stop("Neither the folder nor the subfolders of the given path include a JSON file!")
   }
 
   # add dataframe including unknown events if indicated
-  prepared_logdata <- list(participation=participant_summary,
-                           workflows=workflows,
+  prepared_logdata <- list(participation=logdata_summary,
+                           questionnaires_elements=questionnaire_elements,
+                           event_list=event_list,
                            project_elements=get_project_elements(json_data, debug_mode),
                            project_modules=get_project_modules(json_data, debug_mode),
                            mail_recipients=mail_recipient_codes)

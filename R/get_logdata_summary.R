@@ -1,7 +1,7 @@
-#' Getting the General Participation Information
+#' Basic summary from the Logdata of a Participation
 #'
 #' Takes the log data and the already prepared workflow data from a single participant
-#' and returns a dataframe including a single line with general information of the participation.
+#' and returns a single line dataframe with general information on the participation.
 #'
 #' @param json_data The log data for a single participation in form of a json object
 #' @param workflow The prepared data from the workflow of the participant
@@ -18,10 +18,10 @@
 #' }
 #'
 #' @importFrom dplyr tibble
-get_participant_summary <- function (json_data, workflow, debug_mode=FALSE){
+get_logdata_summary <- function (json_data, workflow, debug_mode=FALSE){
 
   # Initialization of the dataframe row for the general answer data of the participant with its ID
-  participant_summary <- tibble(id = json_data$surveyInvitation$id) %>%
+  logdata_summary <- tibble(id = json_data$surveyInvitation$id) %>%
 
       # extract basic project and survey info
       mutate(project = json_data$project$title, survey = json_data$survey$title) %>%
@@ -38,8 +38,8 @@ get_participant_summary <- function (json_data, workflow, debug_mode=FALSE){
 
   # Checking if invited participant actually participated
   # (to avoid errors by calling non existent variables)
-  if (participant_summary$did_participate) {
-    participant_summary <- participant_summary %>%
+  if (logdata_summary$did_participate) {
+    logdata_summary <- logdata_summary %>%
       mutate(salutation = json_data$surveyEvents[[1]]$data$salutation,
              first_name = json_data$surveyEvents[[1]]$data$firstName,
              last_name = json_data$surveyEvents[[1]]$data$lastName)
@@ -49,13 +49,13 @@ get_participant_summary <- function (json_data, workflow, debug_mode=FALSE){
   # (in debug mode there is no module specific info)
   if (!debug_mode) {
     for (module in names(workflow)) {
-      participant_summary[[paste0("module_",module, "_total_duration")]] <- workflow[[module]]$module_time[length(workflow[[module]]$module_time)]
-      participant_summary[[paste0("module_",module, "_events")]] <- list(workflow[[module]]$event_code)
-      participant_summary[[paste0("module_",module, "_event_durations")]] <- list(workflow[[module]]$event_duration)
+      logdata_summary[[paste0("module_",module, "_total_duration")]] <- workflow[[module]]$module_time[length(workflow[[module]]$module_time)]
+      logdata_summary[[paste0("module_",module, "_events")]] <- list(workflow[[module]]$event_code)
+      logdata_summary[[paste0("module_",module, "_event_durations")]] <- list(workflow[[module]]$event_duration)
     }
   }
 
-  return(participant_summary)
+  return(logdata_summary)
 
 }
 

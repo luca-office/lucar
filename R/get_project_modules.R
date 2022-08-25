@@ -19,6 +19,7 @@
 #' @importFrom dplyr bind_rows
 #' @importFrom dplyr select
 #' @importFrom dplyr n
+#' @importFrom dplyr coalesce
 #' @importFrom stringr str_pad
 #' @export
 get_project_modules <- function (json_data, hash_ids=FALSE) {
@@ -27,8 +28,10 @@ get_project_modules <- function (json_data, hash_ids=FALSE) {
   modules <- json_data$project$projectModules %>%
     purrr::map_depth(2, ~ replace(.x, is.null(.x), NA)) %>% # replacing NULL elements by NA
     dplyr::bind_rows() %>%   # format list as dataframe
+    dplyr::arrange(position) %>%  # order modules according to their position
     dplyr::mutate(code = stringr::str_pad(1:n(), width=2, side="left", pad="0")) %>% # setting the running event codes for each module
-    dplyr::select(code, title, questionnaire_id=questionnaireId, scenario_id=scenarioId, sample_company_id=sampleCompanyId) %>% # select only relevant variables
+    dplyr::mutate(module_id=dplyr::coalesce(.$questionnaireId, .$scenarioId)) %>%
+    dplyr::select(code, title, module_id, sample_company_id=sampleCompanyId) %>% # select only relevant variables
     dplyr::select_if(hash_ids|!grepl("^id$|_id$", names(.))) # removing hash IDs if indicated by boolean argument 'hash_ids'
   return(modules)
 }
