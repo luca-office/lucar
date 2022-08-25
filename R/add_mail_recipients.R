@@ -13,6 +13,11 @@
 #' @importFrom dplyr %>%
 add_mail_recipients <- function (participant_events, mail_recipient_codes=tibble(recipient=character(), code=character())) {
 
+  # If no mails were defined return the empty list
+  if (length(json_data$emails)==0) {
+    return(mail_recipient_codes)
+  }
+
   # Complete participant's recipient list
   completed_mail_recipient_codes <- participant_events %>%
     dplyr::filter(eventType=="UpdateEmail") %>%

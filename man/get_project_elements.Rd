@@ -2,20 +2,20 @@
 % Please edit documentation in R/get_project_elements.R
 \name{get_project_elements}
 \alias{get_project_elements}
-\title{Getting the project elements and its respective codes for the data}
+\title{Getting the project elements from a project}
 \usage{
 get_project_elements(json_data, hash_ids = FALSE)
 }
 \arguments{
 \item{json_data}{Nested list including the log data for a single participation}
 
-\item{hash_ids}{If TRUE the internal hash IDs for the projct elements are included}
+\item{hash_ids}{If TRUE the internal hash IDs for the project elements are included}
 }
 \value{
-A dataframe including all project elements, their workflow codes and other relevant information
+A dataframe including all project elements, their event codes and other relevant information
 }
 \description{
-Takes the log data from a single participation and returns a list with the names of all project elements and the respective workflow codes.
+Takes the log data from a single participation and returns a table with the names of all project elements and the respective workflow codes.
 These might prepared onboarding steps, emails, excel sheets, pdf, events and other elements.
 }
 \examples{
