@@ -13,27 +13,22 @@
 #' @importFrom dplyr %>%
 add_mail_recipients <- function (participant_events, mail_recipient_codes=tibble(recipient=character(), code=character())) {
 
-  # If no mails were defined return the empty list
-  if (length(json_data$emails)==0) {
-    return(mail_recipient_codes)
-  }
-
   # Complete participant's recipient list
   completed_mail_recipient_codes <- participant_events %>%
     dplyr::filter(eventType=="UpdateEmail") %>%
     tidyr::unnest_wider(data) %>%
     dplyr::arrange(desc(timestamp)) %>%
-    dplyr::distinct(id, .keep_all=TRUE) %>%
-    dplyr::distinct(to) %>%
-    dplyr::filter(to!="") %>%
-    dplyr::select(recipient=to) %>%
-    dplyr::full_join(mail_recipient_codes, by="recipient") %>%
-    dplyr::arrange(code)
-
-  # Check whether the table is still empty to avoid errors in coalesce()
-    if (nrow(completed_mail_recipient_codes)>0){
-      completed_mail_recipient_codes <- completed_mail_recipient_codes %>%
-        dplyr::mutate(code=coalesce(code, stringr::str_pad(1:n(), width=2, side="left", pad="0")))
+    # Skip the following steps if no emails are present and return incoming mail recipient codes
+    { if (nrow(.)==0) {
+        mail_recipient_codes
+    } else {
+        dplyr::distinct(id, .keep_all=TRUE) %>%
+        dplyr::distinct(to) %>%
+        dplyr::filter(to!="") %>%
+        dplyr::select(recipient=to) %>%
+        dplyr::full_join(mail_recipient_codes, by="recipient") %>%
+        dplyr::arrange(code)
+      }
     }
 
   return(completed_mail_recipient_codes)

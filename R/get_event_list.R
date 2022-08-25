@@ -99,7 +99,10 @@ get_event_list <- function (json_data, questionnaire_elements=NULL, module_speci
     # add dummy variables for event data that was not generated for this participant
     tibble::add_column(!!!needed_variables[!names(needed_variables) %in% names(.)]) %>%
     # renaming ID variables according to naming conventions
-    dplyr::rename(module_id=dplyr::coalesce(.$scenarioId, .$questionnaireId), binary_file_id=binaryFileId, spreadsheet_id=spreadsheetId, file_id=fileId, email_id=emailId) %>%
+    dplyr::rename(binary_file_id=binaryFileId, spreadsheet_id=spreadsheetId, file_id=fileId, email_id=emailId) %>%
+
+    # Combine the questionnaire and scenario id to a single module_id variable
+    dplyr::mutate(module_id=dplyr::coalesce(.$scenarioId, .$questionnaireId)) %>%
 
     # The following steps are only conducted for a not empty list of project elements (i.e. not only questionnaires were defined but also scenarios)
     { if (!is.null(project_elements)) {
@@ -198,7 +201,7 @@ get_event_list <- function (json_data, questionnaire_elements=NULL, module_speci
     } %>%
 
     # select final set of variables
-    dplyr::select(invitation_id, survey_id, scenario_id, time, project_time, event_duration,
+    dplyr::select(invitation_id, survey_id, module_id, time, project_time, event_duration,
            label, event_code, data, event_type, data2, binary_file_id, email_id, spreadsheet_id, file_id) %>%
 
     # Removing hash IDs and debugging variables if 'debug_mode' is set to `FALSE`

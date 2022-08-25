@@ -53,7 +53,7 @@ prepare_data <- function (path = "./", aggregate_events=FALSE, idle_time=20, unz
   unknown_events <- dplyr::tibble()
   mail_recipient_codes <- tibble(recipient=character(), code=character())
 
-  questionnaire_elements <- get_questionnaire_elements(json_data[[1]], hash_ids=FALSE)
+  questionnaire_elements <- get_questionnaire_elements(rjson::fromJSON(file=file.path(json_files[[1]])), hash_ids=TRUE)
 
   # Looping through all JSON files identified in the given path
   for (json_file in json_files){
@@ -70,7 +70,7 @@ prepare_data <- function (path = "./", aggregate_events=FALSE, idle_time=20, unz
 
     # add new list element with the workflow data, naming it with the ID of the  participation
     element_name <- sub('\\..*$', '', basename(json_file))
-    event_list[[element_name]] <- get_event_list(json_data, questionnaire_codes, module_specific=module_specific, idle_time=idle_time, mail_recipient_codes=mail_recipient_codes, event_codes, tool_codes, debug_mode=debug_mode)
+    event_list[[element_name]] <- get_event_list(json_data, questionnaire_elements, module_specific=module_specific, idle_time=idle_time, mail_recipient_codes=mail_recipient_codes, event_codes, tool_codes, debug_mode=debug_mode)
     # Assigned mail recipient codes are stored in an extra variable and removed from the participant's workflow info
     mail_recipient_codes <- event_list[[element_name]]$mail_recipient_codes
     event_list[[element_name]]$mail_recipient_codes <- NULL
@@ -105,7 +105,7 @@ prepare_data <- function (path = "./", aggregate_events=FALSE, idle_time=20, unz
 
   # add dataframe including unknown events if indicated
   prepared_logdata <- list(participation=logdata_summary,
-                           questionnaires_elements=questionnaire_elements,
+                           questionnaires_elements=get_questionnaire_elements(json_data, hash_ids=FALSE),
                            event_list=event_list,
                            project_elements=get_project_elements(json_data, debug_mode),
                            project_modules=get_project_modules(json_data, debug_mode),
