@@ -43,11 +43,6 @@ get_event_list <- function (json_data, questionnaire_elements=NULL, module_speci
     return(list(mail_recipient_codes=mail_recipient_codes))
   }
 
-  # if not already provided, get questionnaire_codes that will be used for the event codes
-  if (is.null(questionnaire_elements)){
-    questionnaire_elements <- get_questionnaire_elements(json_data, hash_ids=TRUE)
-  }
-
   # formatting the events into a tibble
   participant_events <-
     # transforming nested list into a iibble
@@ -62,11 +57,16 @@ get_event_list <- function (json_data, questionnaire_elements=NULL, module_speci
   # get all project modules and the corresponding hash IDs
   project_modules <- get_project_modules(json_data, hash_ids=TRUE)
 
-  # get all project elements and their respective event codes
-  project_elements <- get_project_elements(json_data, hash_ids=TRUE)
+  # get all scenario elements and their respective event codes
+  scenario_elements <- get_scenario_elements(json_data, hash_ids=TRUE)
 
-  # get all mail recipients the participant was starting an email and add them to the received mail_codes if they were not included yet
+  # get all mail recipients the participant(s) were entering in any email and add them to the received mail_codes
   mail_recipient_codes <- add_mail_recipients(participant_events, mail_recipient_codes)
+
+  # if not already provided, get questionnaire_codes that will be used for the event codes
+  if (is.null(questionnaire_elements)){
+    questionnaire_elements <- get_questionnaire_elements(json_data, hash_ids=TRUE)
+  }
 
   # Construction of a helper dataframe that includes all variables used from the nested JSON data structure
   # it is needed to add missing variables to the temporary dataframe of the event list (e.g. if some events did not occur for the given participant)
@@ -105,13 +105,13 @@ get_event_list <- function (json_data, questionnaire_elements=NULL, module_speci
     dplyr::mutate(module_id=dplyr::coalesce(.$scenarioId, .$questionnaireId)) %>%
 
     # The following steps are only conducted for a not empty list of project elements (i.e. not only questionnaires were defined but also scenarios)
-    { if (!is.null(project_elements)) {
+    { if (!is.null(scenario_elements)) {
       # match event ids with the ids of the project elements (if project element)
-      dplyr::left_join(., select(project_elements,-c("binary_file_id","spreadsheet_id")), by="id", na_matches="never") %>%
-      dplyr::left_join(select(project_elements,-c("id","spreadsheet_id")), by="binary_file_id", na_matches="never") %>%
-      dplyr::left_join(select(project_elements,-c("id","binary_file_id")), by="spreadsheet_id", na_matches="never") %>%
-      dplyr::left_join(select(project_elements,-c("id","spreadsheet_id")), by=c("file_id"="binary_file_id"), na_matches="never") %>%
-      dplyr::left_join(select(project_elements,-c("binary_file_id", "spreadsheet_id")), by=c("email_id"="id"), na_matches="never") %>%
+      dplyr::left_join(., select(scenario_elements,-c("binary_file_id","spreadsheet_id")), by="id", na_matches="never") %>%
+      dplyr::left_join(select(scenario_elements,-c("id","spreadsheet_id")), by="binary_file_id", na_matches="never") %>%
+      dplyr::left_join(select(scenario_elements,-c("id","binary_file_id")), by="spreadsheet_id", na_matches="never") %>%
+      dplyr::left_join(select(scenario_elements,-c("id","spreadsheet_id")), by=c("file_id"="binary_file_id"), na_matches="never") %>%
+      dplyr::left_join(select(scenario_elements,-c("binary_file_id", "spreadsheet_id")), by=c("email_id"="id"), na_matches="never") %>%
 
       # merge relevant variables (replacing NAs with values included due to subsequent joins above) and replace NAs by empty string
       dplyr::mutate(name=dplyr::coalesce(!!!syms(grep("^name",names(.), value=TRUE))),
@@ -152,18 +152,36 @@ get_event_list <- function (json_data, questionnaire_elements=NULL, module_speci
                                                plyr::mapvalues(module_id, project_modules$module_id, project_modules$code, warn_missing = FALSE)[grepl("^M##", event_code)],
                                                substr(event_code[grepl("^M##", event_code)], 4, 10) ))) %>%
 
-    # The following steps are only conducted for a not empty list of project elements (i.e. not only questionnaires were defined but also scenarios)
-    { if (!is.null(project_elements)) {
 
-        # integrate question and answer id into the event_codes were necessary
-        dplyr::mutate(., event_code=replace(event_code, grepl("^Q###A##", event_code),
-                                         paste0("Q",
-                                                plyr::mapvalues(module_id, project_modules$module_id, project_modules$code, warn_missing = FALSE)[grepl("^M##", event_code)],
-                                                substr(event_code[grepl("^M##", event_code)], 4, 10) )))
-      } else {
+    # The following steps are only conducted for a non-empty list of questionnaire elements
+    { if (!is.null(questionnaire_elements)) {
+
+        # integrate question id into the event_codes
+        dplyr::mutate(., event_code=replace(event_code,
+                                            grepl("^Q###A##", event_code),
+                                            paste0("Q",
+                                                   plyr::mapvalues(questionId, questionnaire_elements$question_id,
+                                                                   questionnaire_elements$question_no, warn_missing = FALSE)[grepl("^Q###A##", event_code)],
+                                                   "A##",
+                                                   substr(event_code[grepl("^Q###A##", event_code)], 8, 10)))) %>%
+        # set answer id to "00" for free text answers
+        dplyr::mutate(., event_code=replace(event_code,
+                                            is.na(plyr::mapvalues(answerId, questionnaire_elements$answer_category_id, questionnaire_elements$question_type, warn_missing = FALSE)),
+                                            paste0(substr(event_code[is.na(plyr::mapvalues(answerId, questionnaire_elements$answer_category_id, questionnaire_elements$question_type, warn_missing = FALSE))], 1, 5),
+                                                   "00",
+                                                   substr(event_code[is.na(plyr::mapvalues(answerId, questionnaire_elements$answer_category_id, questionnaire_elements$question_type, warn_missing = FALSE))], 8, 10)))) %>%
+        # set correct answer id for multiple and single choice items
+        dplyr::mutate(., event_code=replace(event_code,
+                                                     grepl("^Q...A##", event_code),
+                                                     paste0(substr(event_code[grepl("^Q...A##", event_code)], 1, 5),
+                                                            plyr::mapvalues(answerId, questionnaire_elements$answer_category_id,
+                                                                          questionnaire_elements$answer_no, warn_missing = FALSE)[grepl("^Q...A##", event_code)],
+                                                     substr(event_code[grepl("^Q...A##", event_code)], 8, 10))))
+    } else {
       .
       }
     } %>%
+
 
     # prepare content for the data column depending on the event type
     dplyr::mutate(data=dplyr::case_when(event_type=="StoreParticipantData" ~ paste0("Salutation: ", salutation, "; First name: ", firstName, "; Last name: ", lastName),
@@ -192,7 +210,7 @@ get_event_list <- function (json_data, questionnaire_elements=NULL, module_speci
                                         )) %>%
 
     # The following step is only conducted for a not empty list of project elements (i.e. not only questionnaires were defined but also scenarios)
-    { if (!is.null(project_elements)) {
+    { if (!is.null(scenario_elements)) {
       # Fill missings in variable data with the value provided in the variable name (usually the name of the file the participant is working with)
       dplyr::mutate(data=dplyr::coalesce(data, name))
       } else {

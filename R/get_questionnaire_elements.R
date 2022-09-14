@@ -17,55 +17,68 @@
 #' @importFrom dplyr %>%
 #' @importFrom dplyr bind_rows
 #' @importFrom dplyr select
+#' @importFrom dplyr coalesce
 #' @export
 get_questionnaire_elements <- function (json_data, hash_ids=FALSE) {
 
   questionnaire_elements <- json_data$questionnaires %>%
+    { if (length(.)==0) {
+      NULL
+    } else {
 
-    # unlist questions in all questionnaires into rows
-    dplyr::bind_rows() %>%
+      # unlist questions in all questionnaires into rows
+      dplyr::bind_rows(.) %>%
 
-    # Unnest all questions
-    tidyr::unnest_wider(questions, names_sep="_") %>%
+      # Unnest all questions
+      tidyr::unnest_wider(questions, names_sep="_") %>%
 
-    # add running id for questionnaires and questions within questionnaires
-    group_by(id) %>%
-    dplyr::mutate(questionnaire_no=cur_group_id()) %>%
-    dplyr::mutate(question_no=row_number()) %>%
+      # add running id for questionnaires and questions within questionnaires
+      group_by(id) %>%
+      dplyr::mutate(questionnaire_no=cur_group_id()) %>%
+      dplyr::mutate(question_no=stringr::str_pad(row_number(), 3, pad = "0")) %>%
 
-    # Unnest all answers
-    tidyr::unnest_longer(questions_answers) %>%
-    tidyr::unnest_wider(questions_answers, names_sep="_") %>%
-    tidyr::unnest_longer(questions_freetextQuestionCodingCriteria) %>%
-    tidyr::unnest_wider(questions_freetextQuestionCodingCriteria, names_sep="_") %>%
+      # Unnest all answers
+      tidyr::unnest_longer(questions_answers) %>%
+      tidyr::unnest_wider(questions_answers, names_sep="_") %>%
+      tidyr::unnest_longer(questions_freetextQuestionCodingCriteria) %>%
+      tidyr::unnest_wider(questions_freetextQuestionCodingCriteria, names_sep="_") %>%
 
-    # Order (questions and) and answers according to their position in the questionnaire
-    # TODO: replace question_no by questions_position as soon as variable available
-    arrange(questionnaire_no, question_no, questions_answers_position) %>%
+      # Order (questions and) and answers according to their position in the questionnaire
+      # TODO: replace question_no by questions_position as soon as variable available
+      arrange(questionnaire_no, question_no, questions_answers_position) %>%
 
 
-    # add running id for answers
-    group_by(questions_id) %>%
-    mutate(answer_no=row_number()) %>%
+      # add running id for answers
+      group_by(questions_id) %>%
+      mutate(answer_no=stringr::str_pad(row_number(), 2, pad = "0")) %>%
 
-    # add complete codes
-    mutate(answer_code=paste0("Q", stringr::str_pad(question_no, 3, pad = "0"), "A", stringr::str_pad(answer_no, 2, pad = "0"))) %>%
+      # add complete codes
+      mutate(answer_code=paste0("Q", question_no, "A", answer_no)) %>%
 
-    # select and name final set of variables
-    dplyr::select(questionnaire_no, question_no, answer_no, answer_code,
-                  questionnaire_id=id, questionnaire_title=title, questionnaire_description=description,
-                  questionnaire_type=questionnaireType, questionnaire_maxDurationInSeconds=maxDurationInSeconds,
-                  question_id=questions_id, question_text=questions_text, question_type=questions_questionType,
-                  question_isAdditionalFreeTextAnswerEnabled=questions_isAdditionalFreeTextAnswerEnabled,
-                  answer_id=questions_answers_id, answer_choiceText=questions_answers_text,
-                  answer_isCorrect=questions_answers_isCorrect, answer_position=questions_answers_position,
-                  answer_freeText_codingCriteria_id=questions_freetextQuestionCodingCriteria_id,
-                  answer_freeText_codingCriteria_description=questions_freetextQuestionCodingCriteria_description,
-                  answer_freeText_codingCriteria_score=questions_freetextQuestionCodingCriteria_score) %>%
+      # set answer codes for open answers to 00 at the end
+#      mutate(answer_code=paste0("Q", stringr::str_pad(question_no, 3, pad = "0"), "A", stringr::str_pad(answer_no, 2, pad = "0"))) %>%
 
-    # remove hash IDs if 'hash_ids' is set to `FALSE`
-    dplyr::select_if(hash_ids|!grepl("_no$|_id$", names(.)))
 
+      # merge answer category ids and descriptions for closed and open responses
+      mutate(answer_category_id=dplyr::coalesce(questions_answers_id, questions_freetextQuestionCodingCriteria_id)) %>%
+      mutate(answer_category_description=dplyr::coalesce(questions_answers_text, questions_freetextQuestionCodingCriteria_description)) %>%
+
+      # select and name final set of variables
+      dplyr::select(questionnaire_no, question_no, answer_no, answer_code,
+                    questionnaire_id=id, questionnaire_title=title, questionnaire_description=description,
+                    questionnaire_type=questionnaireType, questionnaire_maxDurationInSeconds=maxDurationInSeconds,
+                    question_id=questions_id, question_text=questions_text, question_type=questions_questionType,
+                    question_isAdditionalFreeTextAnswerEnabled=questions_isAdditionalFreeTextAnswerEnabled,
+                    answer_category_id, answer_category_description,
+                    answer_closed_category_isCorrect=questions_answers_isCorrect, answer_position=questions_answers_position,
+                    answer_freeText_category_score=questions_freetextQuestionCodingCriteria_score) %>%
+
+      # remove hash IDs if 'hash_ids' is set to `FALSE`
+      ungroup() %>%
+      dplyr::select_if(hash_ids|!grepl("_no$|_id$", names(.)))
+
+      }
+    }
 
   return(questionnaire_elements)
 }
