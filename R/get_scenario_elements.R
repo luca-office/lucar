@@ -1,12 +1,12 @@
-#' Getting the project elements from a project
+#' Getting the scenario elements from a project
 #'
-#' Takes the log data from a single participation and returns a table with the names of all project elements and the respective workflow codes.
-#' These might prepared onboarding steps, emails, excel sheets, pdf, events and other elements.
+#' Takes the log data from a single participation and returns a table with the names of all scenario elements and the respective event codes.
+#' These might be emails, excel sheets, pdf, and other elements.
 #'
 #' @param json_data Nested list including the log data for a single participation
 #' @param hash_ids If TRUE the internal hash IDs for the project elements are included
 #'
-#' @return A dataframe including all project elements, their event codes and other relevant information
+#' @return A dataframe including all elements existing in the scenarios of a project, their event codes and other relevant information
 #'
 #' @examples
 #' \dontrun{
@@ -21,7 +21,7 @@
 #' @importFrom dplyr mutate
 #' @importFrom dplyr select
 #' @export
-get_project_elements <- function (json_data, hash_ids=FALSE) {
+get_scenario_elements <- function (json_data, hash_ids=FALSE) {
 
   # tibble with info on the project emails that are categorized according to their relevance
   emails <- json_data$emails %>%
@@ -51,7 +51,7 @@ get_project_elements <- function (json_data, hash_ids=FALSE) {
     }
 
   # combining the elements in a single table
-  project_elements <- rbind(emails, files) %>%
+  scenario_elements <- rbind(emails, files) %>%
     { if (!is.null(.)) {
         # setting the running workflow codes for each project element
         dplyr::mutate(., element_code=construct_element_code(relevance), .before = 1) %>%
@@ -60,7 +60,7 @@ get_project_elements <- function (json_data, hash_ids=FALSE) {
       }
     }
 
-  return(project_elements)
+  return(scenario_elements)
 }
 
 #' Helper function to assign the running event code for elements of the same type
