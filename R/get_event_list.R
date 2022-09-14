@@ -166,10 +166,10 @@ get_event_list <- function (json_data, questionnaire_elements=NULL, module_speci
                                                    substr(event_code[grepl("^Q###A##", event_code)], 8, 10)))) %>%
         # set answer id to "00" for free text answers
         dplyr::mutate(., event_code=replace(event_code,
-                                            is.na(plyr::mapvalues(answerId, questionnaire_elements$answer_category_id, questionnaire_elements$question_type, warn_missing = FALSE)),
-                                            paste0(substr(event_code[is.na(plyr::mapvalues(answerId, questionnaire_elements$answer_category_id, questionnaire_elements$question_type, warn_missing = FALSE))], 1, 5),
+                                            grepl("^Q...A##", event_code)&is.na(plyr::mapvalues(answerId, questionnaire_elements$answer_category_id, questionnaire_elements$question_type, warn_missing = FALSE)),
+                                            paste0(substr(event_code[grepl("^Q...A##", event_code)&is.na(plyr::mapvalues(answerId, questionnaire_elements$answer_category_id, questionnaire_elements$question_type, warn_missing = FALSE))], 1, 5),
                                                    "00",
-                                                   substr(event_code[is.na(plyr::mapvalues(answerId, questionnaire_elements$answer_category_id, questionnaire_elements$question_type, warn_missing = FALSE))], 8, 10)))) %>%
+                                                   substr(event_code[grepl("^Q...A##", event_code)&is.na(plyr::mapvalues(answerId, questionnaire_elements$answer_category_id, questionnaire_elements$question_type, warn_missing = FALSE))], 8, 10)))) %>%
         # set correct answer id for multiple and single choice items
         dplyr::mutate(., event_code=replace(event_code,
                                                      grepl("^Q...A##", event_code),
