@@ -48,12 +48,24 @@ prepare_data <- function (path = "./", aggregate_events=FALSE, idle_time=20, unz
   json_files <- grep("\\.json$", list.files(path, full.names=TRUE, recursive=TRUE), value=TRUE)
 
   # Initialization of objects for the result object
-  logdata_summary <- NULL
+  participation_data <- dplyr::tibble(project=character())
   event_list <- list()
   unknown_events <- dplyr::tibble()
   mail_recipient_codes <- tibble(recipient=character(), code=character())
 
-  questionnaire_elements <- get_questionnaire_elements(rjson::fromJSON(file=file.path(json_files[[1]])), hash_ids=TRUE)
+
+  # import first JSON to read the basic project data only from this element
+  json_data <- rjson::fromJSON(file=file.path(json_files[[1]]))
+  # get project modules overview and the corresponding hash IDs
+  project_modules <- get_project_modules(json_data, hash_ids=TRUE)
+  # get scenario elements overview and their respective event codes
+  scenario_elements <- get_scenario_elements(json_data, hash_ids=TRUE)
+  # get questionnaire elements overview and the corresponding hash IDs
+  questionnaire_elements <- get_questionnaire_elements(json_data, hash_ids=TRUE)
+  # get rater overview and the corresponding hash IDs
+  rater <- get_rater(json_data, hash_ids=TRUE)
+
+
 
   # Looping through all JSON files identified in the given path
   for (json_file in json_files){
@@ -68,10 +80,10 @@ prepare_data <- function (path = "./", aggregate_events=FALSE, idle_time=20, unz
     json_data <- rjson::fromJSON(file= file.path(json_file))
 
 
-    # add new list element with the workflow data, naming it with the ID of the  participation
+    # add new list element with the event data, naming it with the ID of the participation
     element_name <- sub('\\..*$', '', basename(json_file))
-    event_list[[element_name]] <- get_event_list(json_data, questionnaire_elements, module_specific=module_specific, idle_time=idle_time, mail_recipient_codes=mail_recipient_codes, event_codes, tool_codes, debug_mode=debug_mode)
-    # Assigned mail recipient codes are stored in an extra variable and removed from the participant's workflow info
+    event_list[[element_name]] <- get_event_list(json_data, project_modules, scenario_elements, questionnaire_elements, module_specific=module_specific, idle_time=idle_time, mail_recipient_codes=mail_recipient_codes, event_codes, tool_codes, debug_mode=debug_mode)
+    # Assigned mail recipient codes are stored in an extra variable and removed from the participant's event list
     mail_recipient_codes <- event_list[[element_name]]$mail_recipient_codes
     event_list[[element_name]]$mail_recipient_codes <- NULL
 
@@ -81,14 +93,15 @@ prepare_data <- function (path = "./", aggregate_events=FALSE, idle_time=20, unz
     }
 
 
-    # construct new tibble row for the tibble including the summarized logdata for all participants
-    new_logdata_summary <- get_logdata_summary(json_data,  event_list[[element_name]], debug_mode)
-    # add new participant data to the already existing one
-    if (is.null(logdata_summary)){
-      logdata_summary <- new_logdata_summary
-    } else {
-      logdata_summary <- dplyr::full_join(logdata_summary, new_logdata_summary, by=intersect(names(logdata_summary), names(new_logdata_summary)))
-    }
+    # get tibble row including summarized logdata information for the current participant
+    logdata_summary <- get_logdata_summary(json_data, event_list[[element_name]], debug_mode)
+    # get tibble row including the questionnaire scores for the current participant
+    questionnaire_data <- get_questionnaire_data(json_data, project_modules, scenario_elements, questionnaire_elements, rater, debug_mode=debug_mode)
+
+    # add summary results from above to the results from the previous participants
+    participation_data <- participation_data %>%
+      dplyr::full_join(logdata_summary, by=intersect(names(.), names(logdata_summary))) %>%
+      dplyr::full_join(questionnaire_data, by=intersect(names(.), names(questionnaire_data)))
 
 
     # in debugging mode: collect incomplete event_codes, e.g. due to unknown events or unmatched id's
@@ -104,11 +117,11 @@ prepare_data <- function (path = "./", aggregate_events=FALSE, idle_time=20, unz
   }
 
   # add dataframe including unknown events if indicated
-  prepared_logdata <- list(participation=logdata_summary,
-                           questionnaires_elements=get_questionnaire_elements(json_data, hash_ids=FALSE),
-                           event_list=event_list,
-                           project_elements=get_project_elements(json_data, debug_mode),
+  prepared_logdata <- list(participation_data=participation_data,
                            project_modules=get_project_modules(json_data, debug_mode),
+                           scenario_elements=get_scenario_elements(json_data, debug_mode),
+                           questionnaire_elements=get_questionnaire_elements(json_data, debug_mode),
+                           rater=get_rater(json_data, debug_mode),
                            mail_recipients=mail_recipient_codes)
   if (debug_mode) {
     prepared_logdata[["unknown_events"]] <- unknown_events

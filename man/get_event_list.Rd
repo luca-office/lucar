@@ -6,7 +6,9 @@
 \usage{
 get_event_list(
   json_data,
-  questionnaire_elements = NULL,
+  project_modules,
+  scenario_elements,
+  questionnaire_elements,
   module_specific = TRUE,
   idle_time = 20,
   mail_recipient_codes = tibble(recipient = character(), code = character()),
@@ -18,7 +20,11 @@ get_event_list(
 \arguments{
 \item{json_data}{The log data for a single participation in form of a nested list}
 
-\item{questionnaire_elements}{Dataframe including the codes for the questionnaires of the project the event list belongs. If not provided, it will be generated. The argument is included to reduce potentially redundant operations.}
+\item{project_modules}{Dataframe including the running numbers and ids for the project modules}
+
+\item{scenario_elements}{Dataframe including the codes for all existing scenario elements, which are used in the event list.}
+
+\item{questionnaire_elements}{Dataframe including the codes for all questionnaire elements, which are used in the event list as well as in the summary results.}
 
 \item{module_specific}{If TRUE the workflow is split into separate lists for each module element}
 

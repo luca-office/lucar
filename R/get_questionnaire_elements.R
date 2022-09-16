@@ -33,9 +33,9 @@ get_questionnaire_elements <- function (json_data, hash_ids=FALSE) {
       tidyr::unnest_wider(questions, names_sep="_") %>%
 
       # add running id for questionnaires and questions within questionnaires
-      group_by(id) %>%
-      dplyr::mutate(questionnaire_no=cur_group_id()) %>%
-      dplyr::mutate(question_no=stringr::str_pad(row_number(), 3, pad = "0")) %>%
+      dplyr::group_by(id) %>%
+      dplyr::mutate(questionnaire_no=dplyr::cur_group_id()) %>%
+      dplyr::mutate(question_no=stringr::str_pad(dplyr::row_number(), 3, pad = "0")) %>%
 
       # Unnest all answers
       tidyr::unnest_longer(questions_answers) %>%
@@ -45,12 +45,12 @@ get_questionnaire_elements <- function (json_data, hash_ids=FALSE) {
 
       # Order (questions and) and answers according to their position in the questionnaire
       # TODO: replace question_no by questions_position as soon as variable available
-      arrange(questionnaire_no, question_no, questions_answers_position) %>%
+      plyr::arrange(questionnaire_no, question_no, questions_answers_position) %>%
 
 
       # add running id for answers
-      group_by(questions_id) %>%
-      mutate(answer_no=stringr::str_pad(row_number(), 2, pad = "0")) %>%
+      dplyr::group_by(questions_id) %>%
+      dplyr::mutate(answer_no=stringr::str_pad(row_number(), 2, pad = "0")) %>%
 
       # add complete codes
       mutate(answer_code=paste0("Q", question_no, "A", answer_no)) %>%
@@ -74,7 +74,7 @@ get_questionnaire_elements <- function (json_data, hash_ids=FALSE) {
                     answer_freeText_category_score=questions_freetextQuestionCodingCriteria_score) %>%
 
       # remove hash IDs if 'hash_ids' is set to `FALSE`
-      ungroup() %>%
+      dplyr::ungroup() %>%
       dplyr::select_if(hash_ids|!grepl("_no$|_id$", names(.)))
 
       }

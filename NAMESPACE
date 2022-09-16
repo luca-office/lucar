@@ -2,6 +2,7 @@
 
 export(get_project_modules)
 export(get_questionnaire_elements)
+export(get_rater)
 export(get_scenario_elements)
 export(prepare_data)
 export(write_logdata_csv)

@@ -21,7 +21,7 @@
 get_rater <- function (json_data, hash_ids=FALSE) {
 
   rater_qst <- json_data$scoring$questionnaireScoring %>%
-    { if (length(.)==0| !exists("ratings")) {
+    { if (length(.)==0| !exists("ratings", where = .[[1]])) {
       tibble(ratings_rater_id=character())
     } else {
       # unlist questions in all questionnaires into rows
@@ -33,7 +33,7 @@ get_rater <- function (json_data, hash_ids=FALSE) {
     }
 
   rater_sc <- json_data$scoring$scenarioScoring %>%
-    { if (length(.)==0 | !exists("ratings")) {
+    { if (length(.)==0 | !exists("ratings", where = .[[1]])) {
       tibble(ratings_rater_id=character())
     } else {
       # unlist questions in all questionnaires into rows

@@ -17,12 +17,12 @@ add_mail_recipients <- function (participant_events, mail_recipient_codes=tibble
   completed_mail_recipient_codes <- participant_events %>%
     dplyr::filter(eventType=="UpdateEmail") %>%
     tidyr::unnest_wider(data) %>%
-    dplyr::arrange(desc(timestamp)) %>%
+    dplyr::arrange(plyr::desc(timestamp)) %>%
     # Skip the following steps if no emails are present and return incoming mail recipient codes
     { if (nrow(.)==0) {
         mail_recipient_codes
     } else {
-        dplyr::distinct(id, .keep_all=TRUE) %>%
+        dplyr::distinct(., id, .keep_all=TRUE) %>%
         dplyr::distinct(to) %>%
         dplyr::filter(to!="") %>%
         dplyr::select(recipient=to) %>%
