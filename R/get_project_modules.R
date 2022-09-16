@@ -31,7 +31,9 @@ get_project_modules <- function (json_data, hash_ids=FALSE) {
     dplyr::arrange(position) %>%  # order modules according to their position
     dplyr::mutate(code = stringr::str_pad(1:n(), width=2, side="left", pad="0")) %>% # setting the running event codes for each module
     dplyr::mutate(module_id=dplyr::coalesce(.$questionnaireId, .$scenarioId)) %>%
-    dplyr::select(code, title, module_id, sample_company_id=sampleCompanyId) %>% # select only relevant variables
+    dplyr::mutate(type=dplyr::case_when(!is.na(scenarioId) ~ "scenario",
+                                               !is.na(questionnaireId) ~ "questionnaire")) %>%
+    dplyr::select(code, type, title, module_id, sample_company_id=sampleCompanyId) %>% # select only relevant variables
     dplyr::select_if(hash_ids|!grepl("^id$|_id$", names(.))) # removing hash IDs if indicated by boolean argument 'hash_ids'
   return(modules)
 }

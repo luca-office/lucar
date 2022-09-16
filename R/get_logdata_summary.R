@@ -48,8 +48,12 @@ get_logdata_summary <- function (json_data, workflow, debug_mode=FALSE){
   # If not debugging mode: Add summary information on the specific module workflows
   # (in debug mode there is no module specific info)
   if (!debug_mode) {
+    # list summary values first
     for (module in names(workflow)) {
       logdata_summary[[paste0("module_",module, "_total_duration")]] <- workflow[[module]]$module_time[length(workflow[[module]]$module_time)]
+    }
+    # actual event lists are provided at the end of the tibble
+    for (module in names(workflow)) {
       logdata_summary[[paste0("module_",module, "_events")]] <- list(workflow[[module]]$event_code)
       logdata_summary[[paste0("module_",module, "_event_durations")]] <- list(workflow[[module]]$event_duration)
     }
