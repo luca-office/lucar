@@ -1,10 +1,14 @@
 Package: lucar
-Title: Prepare Data from the LUCA Office Simulation
-Version: 0.0.9
-Authors@R: person("Steffen", "Brandt", email="steffen@opencampus.sh", role = c("aut", "cre"), comment = c(ORCID = "0000-0001-5410-7186"))
-Maintainer: Steffen Brandt <steffen@opencampus.sh>
-Description: Provides functions to prepare the JSON log data from the LUCA Office application.
+Title: Prepare Survey Data from LUCA Office
+Version: 0.1.0
+Authors@R: c(
+    person("Steffen", "Brandt", email="steffen@opencampus.sh",
+           role = c("aut", "cre"), comment = c(ORCID = "0000-0001-5410-7186")))
+#Maintainer: Steffen Brandt <steffen@opencampus.sh>
+Description: Functions to prepare survey data exported from the LUCA Office
+    application (https://luca-office.de/) for secondary analyses.
 License: GPL (>= 3)
+URL: https://github.com/LucaOffice/lucar
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.2
@@ -22,5 +26,6 @@ Imports:
     plyr,
     rlang,
     tibble,
-    readr
+    readr,
+    tidyselect
 LazyData: true

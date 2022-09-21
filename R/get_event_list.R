@@ -8,9 +8,8 @@
 #' @param questionnaire_elements Dataframe including the codes for all questionnaire elements, which are used in the event list as well as in the summary results.
 #' @param module_specific If TRUE the workflow is split into separate lists for each module element
 #' @param idle_time Numeric describing after how many seconds an event is considered as idle.
-#' @param mail_recipient_codes A tibble including previously assigned mail recipients and their codes
-#' @param event_codes Dataframe with the workfltow coding that is used to structure the log data
-#' @param tool_codes Dataframe with the tool coding that is used to assign each used tool to a common code
+#' @param event_codes Dataframe with the event codes that are used to structure the log data
+#' @param tool_codes Dataframe with the tool codes that are used to assign each used tool to a common code
 #' @param debug_mode If TRUE the internal hash IDs for the project elements and additional lower level data are included
 #'
 #' @return A list including the workflow data
@@ -38,11 +37,13 @@
 #' @importFrom dplyr arrange
 #' @importFrom tibble add_column
 #' @importFrom dplyr coalesce
-get_event_list <- function (json_data, project_modules, scenario_elements, questionnaire_elements, module_specific=TRUE, idle_time=20, mail_recipient_codes=tibble(recipient=character(), code=character()), event_codes=lucar::event_codes, tool_codes=lucar::tool_codes, debug_mode=FALSE) {
+get_event_list <- function (json_data, project_modules, scenario_elements,
+                            questionnaire_elements, module_specific=TRUE, idle_time=20,
+                            event_codes=lucar::event_codes, tool_codes=lucar::tool_codes, debug_mode=FALSE) {
 
-  # return empty list if no events were recorded
+  # return only the element with the current list of questionnaire elements if no events were recorded
   if (length(json_data$surveyEvents)==0) {
-    return(list(mail_recipient_codes=mail_recipient_codes))
+    return(list(scenario_elements=scenario_elements))
   }
 
   # formatting the events into a tibble
@@ -56,8 +57,8 @@ get_event_list <- function (json_data, project_modules, scenario_elements, quest
     # rename column
     dplyr::mutate(event_type=eventType)
 
-  # get all mail recipients the participant(s) were entering in any email and add them to the received mail_codes
-  mail_recipient_codes <- add_mail_recipients(participant_events, mail_recipient_codes)
+  # get all mail recipients the participant(s) were entering in any email and add them to the list of scenario elements
+  scenario_elements <- add_user_created_mails(scenario_elements, participant_events)
 
   # Construction of a helper dataframe that includes all variables used from the nested JSON data structure
   # it is needed to add missing variables to the temporary dataframe of the event list (e.g. if some events did not occur for the given participant)
@@ -232,7 +233,7 @@ get_event_list <- function (json_data, project_modules, scenario_elements, quest
       for (module_code in project_modules$code){
 
         # Extracting the starting and ending event for the current module code
-        first_module_event <- grep(paste0("^M",module_code,"STR_SCN$|^M",module_code,"STR_QST$"),full_event_list$event_code)
+        first_module_event <- grep(paste0("^M",module_code,"STR_SCN$|^M",module_code,"STR_QST$"), full_event_list$event_code)
         last_module_event <- grep(paste0("^M",module_code,"END_SCN$|^M",module_code,"END_QST$"), full_event_list$event_code)
         # Checking if the participation was interrupted before the regular end and therefore no ending event is found
         last_module_event <- ifelse (length(last_module_event)==0, length(full_event_list$event_code), last_module_event)
@@ -243,8 +244,56 @@ get_event_list <- function (json_data, project_modules, scenario_elements, quest
         # Adjusting the run times to be module specific
         event_list[[module_code]]$module_time <- event_list[[module_code]]$module_time - event_list[[module_code]]$module_time[1]
       }
-      event_list[["mail_recipient_codes"]] <- mail_recipient_codes
     }
+
+  event_list[["scenario_elements"]] <- scenario_elements
 
   return(event_list)
 }
+globalVariables(c("timestamp", "eventType", "index", "invitationId", "surveyId",
+                  "event_type", "data", "invitation_id", "survey_id", "value",
+                  "binaryFileId", "spreadsheetId", "fileId", "emailId",
+                  "element_code", "tool", "mimeType", "module_id", "questionId",
+                  "answerId", "name", "data2", "binary_file_id", "email_id",
+                  "spreadsheet_id", "file_id"))
+
+
+###############################################################################
+### Helper Functions
+
+#' Inserts event that are marked as idle
+#'
+#' Takes the event data from a single participation and returns the data
+#' including additional events that are marked as idle when the participant was
+#' not active for more than `idle_time` seconds.
+#'
+#' @param workflow A list including the event data
+#' @param idle_time Numeric describing after how many seconds an event is
+#'   considered as idle.
+#'
+#' @return An event list including additional idle events
+#'
+#' @importFrom dplyr %>%
+#' @importFrom dplyr filter
+#' @importFrom dplyr lead
+#' @importFrom dplyr mutate
+insert_idle_events <- function (workflow, idle_time=5) {
+
+  idle_events <- workflow %>%
+    # helper variable to chek if the event_code is the same as the previous one
+    dplyr::filter(event_duration>idle_time) %>%
+    dplyr::mutate(project_time=project_time+idle_time) %>%
+    dplyr::mutate(event_code=paste0(substr(event_code, 1,6),"_IDL")) %>%
+    dplyr::mutate(label=paste0("Idled ", label))
+
+  result_workflow <- rbind(workflow, idle_events) %>%
+    # Sort enlarged event list according to time
+    arrange(time) %>%
+    # Calculation of the corrected event durations after inserting the idle events
+    dplyr::mutate(event_duration=dplyr::lead(project_time)-project_time)
+
+
+  return(result_workflow)
+}
+
+

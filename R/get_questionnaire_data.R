@@ -71,3 +71,4 @@ get_questionnaire_data <- function (json_data, project_modules, scenario_element
   return(qst_data)
 
 }
+globalVariables(c("id", "score", "question_id", "value", "col_name"))
