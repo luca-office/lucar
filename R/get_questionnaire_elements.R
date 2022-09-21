@@ -1,6 +1,8 @@
 #' Getting the questionnaire elements from a project
 #'
-#' Takes the log data from a single participation and returns a table with the names of all questionnaire elements and the respective event codes.
+#' Takes the log data from a single participation and returns a table with the
+#' names of all questionnaire elements and runtime survey elements (which are
+#' technically questionnaires as well) and the respective event codes.
 #'
 #' @param json_data Nested list including the log data for a single participation
 #' @param hash_ids If TRUE the internal hash IDs for the questionnaire elements are included
@@ -18,10 +20,10 @@
 #' @importFrom dplyr bind_rows
 #' @importFrom dplyr select
 #' @importFrom dplyr coalesce
-#' @export
 get_questionnaire_elements <- function (json_data, hash_ids=FALSE) {
 
   questionnaire_elements <- json_data$questionnaires %>%
+    append(json_data$runtimeSurveys) %>%
     { if (length(.)==0) {
       NULL
     } else {
@@ -50,7 +52,7 @@ get_questionnaire_elements <- function (json_data, hash_ids=FALSE) {
 
       # add running id for answers
       dplyr::group_by(questions_id) %>%
-      dplyr::mutate(answer_no=stringr::str_pad(row_number(), 2, pad = "0")) %>%
+      dplyr::mutate(answer_no=stringr::str_pad(dplyr::row_number(), 2, pad = "0")) %>%
 
       # add complete codes
       mutate(answer_code=paste0("Q", question_no, "A", answer_no)) %>%
@@ -82,3 +84,12 @@ get_questionnaire_elements <- function (json_data, hash_ids=FALSE) {
 
   return(questionnaire_elements)
 }
+globalVariables(c("questions", "id", "questions_answers", "questions_freetextQuestionCodingCriteria",
+                  "questionnaire_no", "question_no", "questions_answers_position", "questions_id",
+                  "answer_no", "questions_answers_id", "questions_freetextQuestionCodingCriteria_id",
+                  "questions_answers_text", "questions_freetextQuestionCodingCriteria_description",
+                  "answer_code", "title", "description", "questionnaireType", "maxDurationInSeconds",
+                  "questions_text", "questions_questionType",
+                  "questions_isAdditionalFreeTextAnswerEnabled", "answer_category_id",
+                  "answer_category_description", "questions_answers_isCorrect",
+                  "questions_freetextQuestionCodingCriteria_score"))

@@ -15,7 +15,9 @@ get_questionnaire_elements(json_data, hash_ids = FALSE)
 A dataframe including all questionnaire elements, their event codes and other relevant information
 }
 \description{
-Takes the log data from a single participation and returns a table with the names of all questionnaire elements and the respective event codes.
+Takes the log data from a single participation and returns a table with the
+names of all questionnaire elements and runtime survey elements (which are
+technically questionnaires as well) and the respective event codes.
 }
 \examples{
 \dontrun{

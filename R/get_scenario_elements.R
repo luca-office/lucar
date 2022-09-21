@@ -62,6 +62,9 @@ get_scenario_elements <- function (json_data, hash_ids=FALSE) {
 
   return(scenario_elements)
 }
+globalVariables(c("subject", "relevance", "id", "binary_file_id", "spreadsheet_id",
+                  "name", "doc_type", "binaryFileId", "spreadsheetId", "usageType"))
+
 
 #' Helper function to assign the running event code for elements of the same type
 #'

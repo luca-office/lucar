@@ -11,7 +11,6 @@ get_event_list(
   questionnaire_elements,
   module_specific = TRUE,
   idle_time = 20,
-  mail_recipient_codes = tibble(recipient = character(), code = character()),
   event_codes = lucar::event_codes,
   tool_codes = lucar::tool_codes,
   debug_mode = FALSE
@@ -30,11 +29,9 @@ get_event_list(
 
 \item{idle_time}{Numeric describing after how many seconds an event is considered as idle.}
 
-\item{mail_recipient_codes}{A tibble including previously assigned mail recipients and their codes}
+\item{event_codes}{Dataframe with the event codes that are used to structure the log data}
 
-\item{event_codes}{Dataframe with the workfltow coding that is used to structure the log data}
-
-\item{tool_codes}{Dataframe with the tool coding that is used to assign each used tool to a common code}
+\item{tool_codes}{Dataframe with the tool codes that are used to assign each used tool to a common code}
 
 \item{debug_mode}{If TRUE the internal hash IDs for the project elements and additional lower level data are included}
 }

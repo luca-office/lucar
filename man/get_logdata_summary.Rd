@@ -4,12 +4,12 @@
 \alias{get_logdata_summary}
 \title{Basic summary from the Logdata of a Participation}
 \usage{
-get_logdata_summary(json_data, workflow, debug_mode = FALSE)
+get_logdata_summary(json_data, event_list, debug_mode = FALSE)
 }
 \arguments{
 \item{json_data}{The log data for a single participation in form of a json object}
 
-\item{workflow}{The prepared data from the workflow of the participant}
+\item{event_list}{The prepared data from the workflow of the participant}
 
 \item{debug_mode}{If TRUE the internal hash IDs for the project elements are included and no module specific data is returned.}
 }

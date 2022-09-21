@@ -21,7 +21,6 @@
 #' @importFrom dplyr n
 #' @importFrom dplyr coalesce
 #' @importFrom stringr str_pad
-#' @export
 get_project_modules <- function (json_data, hash_ids=FALSE) {
 
   # tibble with info on the project files that are categorized according to their relevance
@@ -37,3 +36,4 @@ get_project_modules <- function (json_data, hash_ids=FALSE) {
     dplyr::select_if(hash_ids|!grepl("^id$|_id$", names(.))) # removing hash IDs if indicated by boolean argument 'hash_ids'
   return(modules)
 }
+globalVariables(c("position", "code", "type", "title", "module_id", "sampleCompanyId"))

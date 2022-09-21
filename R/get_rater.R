@@ -17,7 +17,6 @@
 #' @importFrom dplyr %>%
 #' @importFrom dplyr bind_rows
 #' @importFrom dplyr select
-#' @export
 get_rater <- function (json_data, hash_ids=FALSE) {
 
   rater_qst <- json_data$scoring$questionnaireScoring %>%
@@ -66,3 +65,4 @@ get_rater <- function (json_data, hash_ids=FALSE) {
 
   return(rater)
 }
+globalVariables(c("ratings", "ratings_rater", "ratings_rater_id", "rater_no", "ratings_rater_email", "ratings_rater_firstName", "ratings_rater_lastName", "ratings_rater_organization"))
