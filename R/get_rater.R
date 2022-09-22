@@ -56,13 +56,13 @@ get_rater <- function (json_data, hash_ids=FALSE) {
         dplyr::mutate(rater_no=stringr::str_pad(dplyr::row_number(), 2, pad="0")) %>%
         # select and name final set of variables
         dplyr::select(rater_no, rater_id=ratings_rater_id, email=ratings_rater_email, first_name=ratings_rater_firstName,
-                      last_name=ratings_rater_lastName, ratings_rater_organization) %>%
-        # remove hash IDs if 'hash_ids' is set to `FALSE`
-        dplyr::select_if(hash_ids|!grepl("_id$", names(.)))
+                      last_name=ratings_rater_lastName, ratings_rater_organization)
       }
     }
 
 
   return(rater)
 }
-globalVariables(c("ratings", "ratings_rater", "ratings_rater_id", "rater_no", "ratings_rater_email", "ratings_rater_firstName", "ratings_rater_lastName", "ratings_rater_organization"))
+globalVariables(c("ratings", "ratings_rater", "ratings_rater_id", "rater_no",
+                  "ratings_rater_email", "ratings_rater_firstName",
+                  "ratings_rater_lastName", "ratings_rater_organization"))

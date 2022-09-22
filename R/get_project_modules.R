@@ -3,7 +3,6 @@
 #' Takes the log data from a single participation and returns a table with the IDs and names of all modules in the project
 #'
 #' @param json_data Nested list including the log data for a single participation
-#' @param hash_ids If TRUE, the returned dataframe includes the hash IDs of the modules
 #'
 #' @return A dataframe including information on the project modules: module code, module title, hash ID of the module, and hash ID of the sample company used in the modules
 #'
@@ -21,7 +20,7 @@
 #' @importFrom dplyr n
 #' @importFrom dplyr coalesce
 #' @importFrom stringr str_pad
-get_project_modules <- function (json_data, hash_ids=FALSE) {
+get_project_modules <- function (json_data) {
 
   # tibble with info on the project files that are categorized according to their relevance
   modules <- json_data$project$projectModules %>%
@@ -32,8 +31,7 @@ get_project_modules <- function (json_data, hash_ids=FALSE) {
     dplyr::mutate(module_id=dplyr::coalesce(.$questionnaireId, .$scenarioId)) %>%
     dplyr::mutate(type=dplyr::case_when(!is.na(scenarioId) ~ "scenario",
                                                !is.na(questionnaireId) ~ "questionnaire")) %>%
-    dplyr::select(code, type, title, module_id, sample_company_id=sampleCompanyId) %>% # select only relevant variables
-    dplyr::select_if(hash_ids|!grepl("^id$|_id$", names(.))) # removing hash IDs if indicated by boolean argument 'hash_ids'
+    dplyr::select(code, type, title, module_id, sample_company_id=sampleCompanyId) # select only relevant variables
   return(modules)
 }
 globalVariables(c("position", "code", "type", "title", "module_id", "sampleCompanyId"))

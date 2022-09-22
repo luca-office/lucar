@@ -4,7 +4,6 @@
 #' These might be emails, excel sheets, pdf, and other elements.
 #'
 #' @param json_data Nested list including the log data for a single participation
-#' @param hash_ids If TRUE the internal hash IDs for the project elements are included
 #'
 #' @return A dataframe including all elements existing in the scenarios of a project, their event codes and other relevant information
 #'
@@ -21,7 +20,7 @@
 #' @importFrom dplyr mutate
 #' @importFrom dplyr select
 #' @export
-get_scenario_elements <- function (json_data, hash_ids=FALSE) {
+get_scenario_elements <- function (json_data) {
 
   # tibble with info on the project emails that are categorized according to their relevance
   emails <- json_data$emails %>%
@@ -54,9 +53,7 @@ get_scenario_elements <- function (json_data, hash_ids=FALSE) {
   scenario_elements <- rbind(emails, files) %>%
     { if (!is.null(.)) {
         # setting the running workflow codes for each project element
-        dplyr::mutate(., element_code=construct_element_code(relevance), .before = 1) %>%
-        # removing hash IDs if indicated by boolean argument 'hash_ids'
-        dplyr::select_if(hash_ids|!grepl("^id$|_id$", names(.)))
+        dplyr::mutate(., element_code=construct_element_code(relevance), .before = 1)
       }
     }
 
@@ -74,6 +71,6 @@ globalVariables(c("subject", "relevance", "id", "binary_file_id", "spreadsheet_i
 #' @importFrom stringr str_pad
 construct_element_code <- function(relevance){
   event_code <- paste0(recode(substr(relevance, 1, 1), "I"=0, "P"=1, "R"=2),
-         str_pad(1:length(relevance), width=3, side="left", pad="0"))
+         stringr::str_pad(1:length(relevance), width=3, side="left", pad="0"))
   return (event_code)
 }

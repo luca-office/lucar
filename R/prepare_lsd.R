@@ -91,19 +91,18 @@ prepare_lsd <- function (path = "./", aggregate_events=FALSE, idle_time=20,
   participation_data <- dplyr::tibble(project=character())
   event_list <- list()
   unknown_events <- dplyr::tibble()
-  mail_recipient_codes <- tibble(recipient=character(), code=character())
 
 
   # import first JSON to read the basic project data only from this element
   json_data <- rjson::fromJSON(file=file.path(json_files[[1]]))
   # get project modules overview and the corresponding hash IDs
-  project_modules <- get_project_modules(json_data, hash_ids=TRUE)
+  project_modules <- get_project_modules(json_data)
   # get scenario elements overview and their respective event codes
-  scenario_elements <- get_scenario_elements(json_data, hash_ids=TRUE)
+  scenario_elements <- get_scenario_elements(json_data)
   # get questionnaire elements overview and the corresponding hash IDs
-  questionnaire_elements <- get_questionnaire_elements(json_data, hash_ids=TRUE)
+  questionnaire_elements <- get_questionnaire_elements(json_data)
   # get rater overview and the corresponding hash IDs
-  rater <- get_rater(json_data, hash_ids=TRUE)
+  rater <- get_rater(json_data)
 
   # console log for start of the data processing
   cat("-> Preparing data ")
@@ -161,15 +160,27 @@ prepare_lsd <- function (path = "./", aggregate_events=FALSE, idle_time=20,
 
   cat(" done!\n\n")
 
-  # add dataframe including unknown events if indicated
+  # if not in debug mode remove hash_ids from the reference tables
+  project_modules <- project_modules %>%
+    dplyr::select_if(debug_mode|!grepl("^id$|_id$", names(.)))
+  scenario_elements <- scenario_elements %>%
+    dplyr::select_if(debug_mode|!grepl("^id$|_id$", names(.)))
+  questionnaire_elements <- questionnaire_elements %>%
+    dplyr::select_if(debug_mode|!grepl("_no$|_id$", names(.)))
+  rater <- rater %>%
+    dplyr::select_if(debug_mode|!grepl("_id$", names(.)))
+
+  # preparation of the anser object
   survey_data <- list(participation_data=participation_data,
-                      project_modules=get_project_modules(json_data, debug_mode),
-                      scenario_elements=get_scenario_elements(json_data, debug_mode),
-                      questionnaire_elements=get_questionnaire_elements(json_data, debug_mode),
-                      rater=get_rater(json_data, debug_mode))
+                      project_modules=project_modules,
+                      scenario_elements=scenario_elements,
+                      questionnaire_elements=questionnaire_elements,
+                      rater=rater)
+  # add table including unknown events if indicated
   if (debug_mode) {
     prepared_logdata[["unknown_events"]] <- unknown_events
   }
+
 
   # delete temp folder with unzipped survey data
   if (!is.null(path_temp)) {

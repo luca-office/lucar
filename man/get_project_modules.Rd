@@ -4,12 +4,10 @@
 \alias{get_project_modules}
 \title{Getting the project module IDs and their titles}
 \usage{
-get_project_modules(json_data, hash_ids = FALSE)
+get_project_modules(json_data)
 }
 \arguments{
 \item{json_data}{Nested list including the log data for a single participation}
-
-\item{hash_ids}{If TRUE, the returned dataframe includes the hash IDs of the modules}
 }
 \value{
 A dataframe including information on the project modules: module code, module title, hash ID of the module, and hash ID of the sample company used in the modules

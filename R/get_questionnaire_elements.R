@@ -5,7 +5,6 @@
 #' technically questionnaires as well) and the respective event codes.
 #'
 #' @param json_data Nested list including the log data for a single participation
-#' @param hash_ids If TRUE the internal hash IDs for the questionnaire elements are included
 #'
 #' @return A dataframe including all questionnaire elements, their event codes and other relevant information
 #'
@@ -20,7 +19,7 @@
 #' @importFrom dplyr bind_rows
 #' @importFrom dplyr select
 #' @importFrom dplyr coalesce
-get_questionnaire_elements <- function (json_data, hash_ids=FALSE) {
+get_questionnaire_elements <- function (json_data) {
 
   questionnaire_elements <- json_data$questionnaires %>%
     append(json_data$runtimeSurveys) %>%
@@ -74,16 +73,14 @@ get_questionnaire_elements <- function (json_data, hash_ids=FALSE) {
                     answer_category_id, answer_category_description,
                     answer_closed_category_isCorrect=questions_answers_isCorrect, answer_position=questions_answers_position,
                     answer_freeText_category_score=questions_freetextQuestionCodingCriteria_score) %>%
-
-      # remove hash IDs if 'hash_ids' is set to `FALSE`
-      dplyr::ungroup() %>%
-      dplyr::select_if(hash_ids|!grepl("_no$|_id$", names(.)))
+      dplyr::ungroup()
 
       }
     }
 
   return(questionnaire_elements)
 }
+
 globalVariables(c("questions", "id", "questions_answers", "questions_freetextQuestionCodingCriteria",
                   "questionnaire_no", "question_no", "questions_answers_position", "questions_id",
                   "answer_no", "questions_answers_id", "questions_freetextQuestionCodingCriteria_id",

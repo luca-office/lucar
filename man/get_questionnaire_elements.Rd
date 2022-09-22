@@ -4,12 +4,10 @@
 \alias{get_questionnaire_elements}
 \title{Getting the questionnaire elements from a project}
 \usage{
-get_questionnaire_elements(json_data, hash_ids = FALSE)
+get_questionnaire_elements(json_data)
 }
 \arguments{
 \item{json_data}{Nested list including the log data for a single participation}
-
-\item{hash_ids}{If TRUE the internal hash IDs for the questionnaire elements are included}
 }
 \value{
 A dataframe including all questionnaire elements, their event codes and other relevant information
