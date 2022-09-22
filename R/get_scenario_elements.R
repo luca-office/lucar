@@ -24,8 +24,9 @@ get_scenario_elements <- function (json_data) {
 
   # tibble with info on the project emails that are categorized according to their relevance
   emails <- json_data$emails %>%
-    { if (length(.)==0) {
-        NULL
+    {
+      if (length(.)==0) {
+        dplyr::tibble()
       } else {
         lapply(., function(x) x[names(x)!="ccRecipients"]) %>% # removing ccRecipients since it has different types depending on its content
         purrr::map_depth(2, ~ replace(.x, is.null(.x), NA)) %>% # replacing NULL elements by NA
@@ -38,8 +39,9 @@ get_scenario_elements <- function (json_data) {
 
   # tibble with info on the project files that are categorized according to their relevance
   files <- json_data$files %>%
-    { if (length(.)==0) {
-        NULL
+    {
+      if (length(.)==0) {
+        dplyr::tibble()
       } else {
         purrr::map_depth(., 2, ~ replace(.x, is.null(.x), NA)) %>% # replacing NULL elements by NA
         dplyr::bind_rows() %>%   # format list as dataframe
@@ -51,9 +53,12 @@ get_scenario_elements <- function (json_data) {
 
   # combining the elements in a single table
   scenario_elements <- rbind(emails, files) %>%
-    { if (!is.null(.)) {
+    {
+      if (length(.)>0) {
         # setting the running workflow codes for each project element
         dplyr::mutate(., element_code=construct_element_code(relevance), .before = 1)
+      } else {
+        dplyr::tibble()
       }
     }
 

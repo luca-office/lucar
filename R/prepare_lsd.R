@@ -86,6 +86,9 @@ prepare_lsd <- function (path = "./", aggregate_events=FALSE, idle_time=20,
   # Get all JSON files located in the given path (including all subfolders)
   json_files <- grep("\\.json$", list.files(path, full.names=TRUE, recursive=TRUE), value=TRUE)
   cat(length(json_files), "files with participation data found.\n")
+  if (length(json_files)==0) {
+    return(dplyr::tibble())
+  }
 
   # Initialization of objects for the result object
   participation_data <- dplyr::tibble(project=character())
@@ -224,7 +227,7 @@ globalVariables(c("project", "survey"))
 #' @importFrom lubridate with_tz
 #' @importFrom lubridate ymd_hms
 getTime <- function(time, tzone="CET"){
-  return(with_tz(ymd_hms(time), tzone))
+  return(lubridate::with_tz(lubridate::ymd_hms(time), tzone))
 }
 
 

@@ -21,7 +21,7 @@ get_rater <- function (json_data, hash_ids=FALSE) {
 
   rater_qst <- json_data$scoring$questionnaireScoring %>%
     { if (length(.)==0 || !exists("ratings", where = .[[1]])) {
-      tibble(ratings_rater_id=character())
+      dplyr::tibble(ratings_rater_id=character())
     } else {
       # unlist questions in all questionnaires into rows
       dplyr::bind_rows(.) %>%
@@ -33,7 +33,7 @@ get_rater <- function (json_data, hash_ids=FALSE) {
 
   rater_sc <- json_data$scoring$scenarioScoring %>%
     { if (length(.)==0 || !exists("ratings", where = .[[1]])) {
-      tibble(ratings_rater_id=character())
+      dplyr::tibble(ratings_rater_id=character())
     } else {
       # unlist questions in all questionnaires into rows
       dplyr::bind_rows(.) %>%
@@ -48,7 +48,7 @@ get_rater <- function (json_data, hash_ids=FALSE) {
     dplyr::full_join(rater_qst, rater_sc, by=intersect(names(rater_qst), names(rater_sc))) %>%
     {
       if (nrow(.)==0){
-        NULL
+        dplyr::tibble()
       } else {
         # only keep each rater once in the table
         dplyr::distinct(., ratings_rater_id, .keep_all= TRUE) %>%

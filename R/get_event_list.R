@@ -70,7 +70,8 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
                                  spreadsheetId=NA_character_, occurred=NA_character_, interventionId=NA_character_,
                                  directoryId=NA_character_, textDocumentTitle=NA_character_, tableType=NA_character_, columnName=NA_character_,
                                  rowId=NA_character_, tableName=NA_character_, scenarioId=NA_character_, questionnaireId=NA_character_,
-                                 binaryFileId=NA_character_, fileId=NA_character_, emailId=NA_character_)
+                                 binaryFileId=NA_character_, fileId=NA_character_, emailId=NA_character_, questionId=NA_character_,
+                                 answerId=NA_character_)
 
 
   event_list <-
@@ -99,7 +100,7 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
     dplyr::mutate(module_id=dplyr::coalesce(.$scenarioId, .$questionnaireId)) %>%
 
     # The following steps are only conducted for a not empty list of project elements (i.e. not only questionnaires were defined but also scenarios)
-    { if (!is.null(scenario_elements)) {
+    { if (length(scenario_elements)>0) {
       # match event ids with the ids of the project elements (if project element)
       dplyr::left_join(., select(scenario_elements,-c("binary_file_id","spreadsheet_id")), by="id", na_matches="never") %>%
       dplyr::left_join(select(scenario_elements,-c("id","spreadsheet_id")), by="binary_file_id", na_matches="never") %>%
@@ -148,32 +149,25 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
 
 
     # The following steps are only conducted for a non-empty list of questionnaire elements
-    { if (!is.null(questionnaire_elements)) {
+    {
+      if (length(questionnaire_elements)>0) {
 
-        # integrate question id into the event_codes
+        # integrate questionnaire, question, and answer ids into the event_codes
         dplyr::mutate(., event_code=replace(event_code,
-                                            grepl("^Q###A##", event_code),
-                                            paste0("Q",
-                                                   plyr::mapvalues(questionId, questionnaire_elements$question_id,
-                                                                   questionnaire_elements$question_no, warn_missing = FALSE)[grepl("^Q###A##", event_code)],
-                                                   "A##",
-                                                   substr(event_code[grepl("^Q###A##", event_code)], 8, 10)))) %>%
-        # set answer id to "00" for free text answers
-        dplyr::mutate(., event_code=replace(event_code,
-                                            grepl("^Q...A##", event_code)&is.na(plyr::mapvalues(answerId, questionnaire_elements$answer_category_id, questionnaire_elements$question_type, warn_missing = FALSE)),
-                                            paste0(substr(event_code[grepl("^Q...A##", event_code)&is.na(plyr::mapvalues(answerId, questionnaire_elements$answer_category_id, questionnaire_elements$question_type, warn_missing = FALSE))], 1, 5),
+                                            grepl("^Q##Q##A##", event_code),
+                                            paste0("Q", plyr::mapvalues(questionnaireId, questionnaire_elements$questionnaire_id,
+                                                                   questionnaire_elements$questionnaire_no, warn_missing = FALSE)[grepl("^Q##Q##A##", event_code)],
+                                                   "Q", plyr::mapvalues(questionId, questionnaire_elements$question_id,
+                                                                   questionnaire_elements$question_no, warn_missing = FALSE)[grepl("^Q##Q##A##", event_code)],
+                                                   "A", plyr::mapvalues(answerId, questionnaire_elements$answer_category_id,
+                                                                   questionnaire_elements$answer_no, warn_missing = FALSE)[grepl("^Q##Q##A##", event_code)],
+                                                   substr(event_code[grepl("^Q##Q##A##", event_code)], 10, 10)))) %>%
+        # set answer id to "00" for free text answers that are edited
+        dplyr::mutate(., event_code=replace(event_code, grepl("^Q..Q..A..E", event_code),
+                                            paste0(substr(event_code[grepl("^Q..Q..A..E$", event_code)], 1, 7),
                                                    "00",
-                                                   substr(event_code[grepl("^Q...A##", event_code)&is.na(plyr::mapvalues(answerId, questionnaire_elements$answer_category_id, questionnaire_elements$question_type, warn_missing = FALSE))], 8, 10)))) %>%
-        # set correct answer id for multiple and single choice items
-        dplyr::mutate(., event_code=replace(event_code,
-                                                     grepl("^Q...A##", event_code),
-                                                     paste0(substr(event_code[grepl("^Q...A##", event_code)], 1, 5),
-                                                            plyr::mapvalues(answerId, questionnaire_elements$answer_category_id,
-                                                                          questionnaire_elements$answer_no, warn_missing = FALSE)[grepl("^Q...A##", event_code)],
-                                                     substr(event_code[grepl("^Q...A##", event_code)], 8, 10))))
-    } else {
-      .
-      }
+                                                   substr(event_code[grepl("^Q..Q..A..E$", event_code)], 10, 10))))
+      } else { . }
     } %>%
 
 
@@ -203,8 +197,8 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
                                         event_type=="UpdateEmail" ~ paste0("To: ", to, "; CC: ", cc, "; Subject: ", subject)
                                         )) %>%
 
-    # The following step is only conducted for a not empty list of project elements (i.e. not only questionnaires were defined but also scenarios)
-    { if (!is.null(scenario_elements)) {
+    # The following step is only conducted for a not empty list of scenario elements (in case only questionnaires were defined)
+    { if (length(scenario_elements)>0) {
       # Fill missings in variable data with the value provided in the variable name (usually the name of the file the participant is working with)
       dplyr::mutate(., data=dplyr::coalesce(data, name))
       } else {
@@ -255,7 +249,7 @@ globalVariables(c("timestamp", "eventType", "index", "invitationId", "surveyId",
                   "binaryFileId", "spreadsheetId", "fileId", "emailId",
                   "element_code", "tool", "mimeType", "module_id", "questionId",
                   "answerId", "name", "data2", "binary_file_id", "email_id",
-                  "spreadsheet_id", "file_id"))
+                  "spreadsheet_id", "file_id", "questionnaireId"))
 
 
 ###############################################################################
