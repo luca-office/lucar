@@ -99,9 +99,9 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
     # Combine the questionnaire and scenario id to a single module_id variable
     dplyr::mutate(module_id=dplyr::coalesce(.$scenarioId, .$questionnaireId)) %>%
 
-    # The following steps are only conducted for a not empty list of project elements (i.e. not only questionnaires were defined but also scenarios)
+    # The following steps are only conducted for a not empty list of scenario elements (i.e. not only questionnaires were defined but also scenarios)
     { if (length(scenario_elements)>0) {
-      # match event ids with the ids of the project elements (if project element)
+      # match event ids with the ids of the scenario elements (if scenario element)
       dplyr::left_join(., select(scenario_elements,-c("binary_file_id","spreadsheet_id")), by="id", na_matches="never") %>%
       dplyr::left_join(select(scenario_elements,-c("id","spreadsheet_id")), by="binary_file_id", na_matches="never") %>%
       dplyr::left_join(select(scenario_elements,-c("id","binary_file_id")), by="spreadsheet_id", na_matches="never") %>%
