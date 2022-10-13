@@ -17,22 +17,28 @@
 #' participation_data <- get_participation_data(json_data, workflow)
 #' }
 #'
-#' @importFrom dplyr tibble
+#' @importFrom tibble tibble
+#' @importFrom dplyr mutate
+#' @importFrom dplyr select_if
 get_logdata_summary <- function (json_data, event_list, debug_mode=FALSE) {
 
   # Initialization of the dataframe row for the general answer data of the participant with its ID
-  logdata_summary <- tibble(id = json_data$surveyInvitation$id) %>%
+  logdata_summary <- tibble::tibble(id = json_data$surveyInvitation$id) %>%
 
     # extract basic project and survey info
-    mutate(project = json_data$project$title, survey = json_data$survey$title) %>%
+    dplyr::mutate(project = json_data$project$title, survey = json_data$survey$title) %>%
     # extract basic participation info
-    mutate(token = json_data$surveyInvitation$token,
+    dplyr::mutate(token = json_data$surveyInvitation$token,
            account_participation = json_data$surveyInvitation$isUserAccountParticipation,
            open_participation = json_data$surveyInvitation$isOpenParticipation,
-           did_participate = as.logical(length(json_data$surveyEvents)>0),
-           project_start = getTime(json_data$surveyInvitation$firstSurveyEventTimestamp),
-           project_end = getTime(json_data$surveyInvitation$lastSurveyEventTimestamp)
-           ) %>%
+           did_participate = FALSE) %>%
+    # summary information for participants who have actually participated
+    { if (length(event_list)!=0) {
+        dplyr::mutate(., did_participate = as.logical(length(json_data$surveyEvents)>0),
+                      project_start = getTime(json_data$surveyInvitation$firstSurveyEventTimestamp),
+                      project_end = getTime(json_data$surveyInvitation$lastSurveyEventTimestamp))
+      } else {.}
+    } %>%
     # Remove ID variable if indicated by Boolean 'hash_ids'
     dplyr::select_if(debug_mode|!grepl("^id$|Id$", names(.)))
 

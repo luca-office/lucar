@@ -71,7 +71,7 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
                                  directoryId=NA_character_, textDocumentTitle=NA_character_, tableType=NA_character_, columnName=NA_character_,
                                  rowId=NA_character_, tableName=NA_character_, scenarioId=NA_character_, questionnaireId=NA_character_,
                                  binaryFileId=NA_character_, fileId=NA_character_, emailId=NA_character_, questionId=NA_character_,
-                                 answerId=NA_character_)
+                                 answerId=NA_character_, id=NA_character_)
 
 
   event_list <-
@@ -101,25 +101,23 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
 
     # The following steps are only conducted for a not empty list of scenario elements (i.e. not only questionnaires were defined but also scenarios)
     { if (length(scenario_elements)>0) {
-      # match event ids with the ids of the scenario elements (if scenario element)
-      dplyr::left_join(., select(scenario_elements,-c("binary_file_id","spreadsheet_id")), by="id", na_matches="never") %>%
-      dplyr::left_join(select(scenario_elements,-c("id","spreadsheet_id")), by="binary_file_id", na_matches="never") %>%
-      dplyr::left_join(select(scenario_elements,-c("id","binary_file_id")), by="spreadsheet_id", na_matches="never") %>%
-      dplyr::left_join(select(scenario_elements,-c("id","spreadsheet_id")), by=c("file_id"="binary_file_id"), na_matches="never") %>%
-      dplyr::left_join(select(scenario_elements,-c("binary_file_id", "spreadsheet_id")), by=c("email_id"="id"), na_matches="never") %>%
+        # match event ids with the ids of the scenario elements (if scenario element)
+        dplyr::left_join(., select(scenario_elements,-c("binary_file_id","spreadsheet_id")), by="id", na_matches="never") %>%
+        dplyr::left_join(select(scenario_elements,-c("id","spreadsheet_id")), by="binary_file_id", na_matches="never") %>%
+        dplyr::left_join(select(scenario_elements,-c("id","binary_file_id")), by="spreadsheet_id", na_matches="never") %>%
+        dplyr::left_join(select(scenario_elements,-c("id","spreadsheet_id")), by=c("file_id"="binary_file_id"), na_matches="never") %>%
+        dplyr::left_join(select(scenario_elements,-c("binary_file_id", "spreadsheet_id")), by=c("email_id"="id"), na_matches="never") %>%
 
-      # merge relevant variables (replacing NAs with values included due to subsequent joins above) and replace NAs by empty string
-      dplyr::mutate(name=dplyr::coalesce(!!!syms(grep("^name",names(.), value=TRUE))),
-                    usage_type=dplyr::coalesce(!!!syms(grep("^usage_type",names(.), value=TRUE))),
-                    element_code=dplyr::coalesce(!!!syms(grep("^element_code",names(.), value=TRUE))),
-                    element_code=replace(element_code, is.na(element_code), "")) %>%
+        # merge relevant variables (replacing NAs with values included due to subsequent joins above) and replace NAs by empty string
+        dplyr::mutate(name=dplyr::coalesce(!!!syms(grep("^name",names(.), value=TRUE))),
+                      usage_type=dplyr::coalesce(!!!syms(grep("^usage_type",names(.), value=TRUE))),
+                      element_code=dplyr::coalesce(!!!syms(grep("^element_code",names(.), value=TRUE))),
+                      element_code=replace(element_code, is.na(element_code), "")) %>%
 
-      # join basic event codes with individual project element code
-      dplyr::mutate(event_code=paste0(event_code, element_code))
-    } else {
-      .
-    }
-  } %>%
+        # join basic event codes with individual project element code
+        dplyr::mutate(event_code=paste0(event_code, element_code))
+      } else {.}
+    } %>%
 
     # Order events according to their time stamps (this step might be unnecessary once the log data generation is corrected in LUCA office)
     arrange(time) %>%
@@ -228,15 +226,22 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
 
         # Extracting the starting and ending event for the current module code
         first_module_event <- grep(paste0("^M",module_code,"STR_SCN$|^M",module_code,"STR_QST$"), full_event_list$event_code)
-        last_module_event <- grep(paste0("^M",module_code,"END_SCN$|^M",module_code,"END_QST$"), full_event_list$event_code)
-        # Checking if the participation was interrupted before the regular end and therefore no ending event is found
-        last_module_event <- ifelse (length(last_module_event)==0, length(full_event_list$event_code), last_module_event)
 
-        # Assigning the events from module starting to ending event to the current module
-        event_list[[module_code]] <- slice(full_event_list, c(first_module_event:last_module_event))
+        # Making sure that the module was started - otherwise return NULL for this modules event list
+        if (length(first_module_event)!=0) {
+          last_module_event <- grep(paste0("^M",module_code,"END_SCN$|^M",module_code,"END_QST$"), full_event_list$event_code)
+          # Checking if the participation was interrupted before the regular end and therefore no ending event is found
+          last_module_event <- ifelse (length(last_module_event)==0, length(full_event_list$event_code), last_module_event)
 
-        # Adjusting the run times to be module specific
-        event_list[[module_code]]$module_time <- event_list[[module_code]]$module_time - event_list[[module_code]]$module_time[1]
+          # Assigning the events from module starting to ending event to the current module
+          event_list[[module_code]] <- slice(full_event_list, c(first_module_event:last_module_event))
+
+          # Adjusting the run times to be module specific
+          event_list[[module_code]]$module_time <- event_list[[module_code]]$module_time - event_list[[module_code]]$module_time[1]
+        } else {
+          event_list[[module_code]] <- NULL
+        }
+
       }
     }
 
