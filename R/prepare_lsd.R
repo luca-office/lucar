@@ -14,8 +14,8 @@
 #' @param path Path to the folder including zip archives downloaded from LUCA
 #'   Office (already unzipped JSON files as well as archives or files in
 #'   subfolders are also considered).
-#' @param aggregate_events For `TRUE`, events with identical codes directly
-#'   following each other will be collated to a single event.
+#' @param aggregate_duplicate_events For `TRUE`, events with identical codes
+#'   directly following each other will be collated to a single event.
 #' @param idle_time For values larger than 0, events will be marked as idle,
 #'   if the event following this one happened more than `ìdle_time` seconds
 #'   later. This might be relevant for analyses considering times when
@@ -51,7 +51,7 @@
 #' @importFrom rjson fromJSON
 #' @importFrom dplyr tibble
 #' @export
-prepare_lsd <- function (path = "./", aggregate_events=FALSE, idle_time=20,
+prepare_lsd <- function (path = "./", aggregate_duplicate_events=FALSE, idle_time=20,
                          unzip = TRUE, event_codes=lucar::event_codes,
                          tool_codes=lucar::tool_codes, debug_mode=FALSE) {
 
@@ -127,16 +127,12 @@ prepare_lsd <- function (path = "./", aggregate_events=FALSE, idle_time=20,
     element_name <- sub('\\..*$', '', basename(json_file))
     event_list[[element_name]] <- get_event_list(json_data, project_modules, scenario_elements,
                                                  questionnaire_elements, module_specific=module_specific,
+                                                 aggregate_duplicate_events=aggregate_duplicate_events,
                                                  idle_time=idle_time, event_codes, tool_codes,
                                                  debug_mode=debug_mode)
     # Assigned mail recipient codes are stored in an extra variable and removed from the participant's event list
     scenario_elements <- event_list[[element_name]]$scenario_elements
     event_list[[element_name]]$scenario_elements <- NULL
-
-    # summarize the workflow data if indicated by the corresponding argument
-    if (aggregate_events) {
-      event_list[[element_name]] <- aggregate_events(event_list[[element_name]])
-    }
 
 
     # get tibble row including summarized logdata information for the current participant
@@ -230,50 +226,4 @@ getTime <- function(time, tzone="CET"){
   return(lubridate::with_tz(lubridate::ymd_hms(time), tzone))
 }
 
-
-#' Aggregate event data from a single participation
-#'
-#' Takes event data from a single participation and returns an aggregated form,
-#' where events with identical codes that occur directly after each other are
-#' aggregated to a single event. The duration values are correspondingly adjusted,
-#' and for each aggregated event an intensity is calculated that describes how
-#' many events occurred in the original form.
-#'
-#' @param event_list A list including the event data
-#'
-#' @return A list including the aggregated event data
-#'
-#' @importFrom dplyr %>%
-#' @importFrom dplyr mutate
-#' @importFrom dplyr filter
-#' @importFrom dplyr lag
-#' @importFrom dplyr lead
-#' @importFrom dplyr select
-#'
-aggregate_events <- function (event_list) {
-
-  aggregated_event_list <- event_list %>%
-    # helper variable to chek if the event_code is the same as the previous one
-    dplyr::mutate(previous_event_code=dplyr::lag(event_code)) %>%
-
-    # helper variable to later calculate the intensity (i.e. how often an event occurred)
-    dplyr::mutate(event_no=1:n()) %>%
-
-    # only keep those case where the current workflow code is different from the previous
-    dplyr::filter(event_code!=previous_event_code) %>%
-
-    # calculation of the activity duration after summarizing evnets with identical workflows codes occurring directly after each other
-    dplyr::mutate(event_duration=project_time-dplyr::lag(project_time)) %>%
-
-    # calculation  of the intensity (i.e. how how often the summarized events occurred in the original data set directly after each other)
-    dplyr::mutate(intensity=dplyr::lead(event_no)-event_no) %>%
-
-    # preparation of the result data set
-    dplyr::select(time, project_time, event_duration, label, event_code, intensity, name, usage_type)
-
-  return(aggregated_event_list)
-}
-globalVariables(c("event_code", "previous_event_code", "project_time",
-                  "event_no", "time", "event_duration", "label", "intensity",
-                  "usage_type", "name"))
 

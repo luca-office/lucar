@@ -6,7 +6,7 @@
 \usage{
 prepare_lsd(
   path = "./",
-  aggregate_events = FALSE,
+  aggregate_duplicate_events = FALSE,
   idle_time = 20,
   unzip = TRUE,
   event_codes = lucar::event_codes,
@@ -19,8 +19,8 @@ prepare_lsd(
 Office (already unzipped JSON files as well as archives or files in
 subfolders are also considered).}
 
-\item{aggregate_events}{For \code{TRUE}, events with identical codes directly
-following each other will be collated to a single event.}
+\item{aggregate_duplicate_events}{For \code{TRUE}, events with identical codes
+directly following each other will be collated to a single event.}
 
 \item{idle_time}{For values larger than 0, events will be marked as idle,
 if the event following this one happened more than \code{ìdle_time} seconds

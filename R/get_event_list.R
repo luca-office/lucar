@@ -6,7 +6,8 @@
 #' @param project_modules Dataframe including the running numbers and ids for the project modules
 #' @param scenario_elements Dataframe including the codes for all existing scenario elements, which are used in the event list.
 #' @param questionnaire_elements Dataframe including the codes for all questionnaire elements, which are used in the event list as well as in the summary results.
-#' @param module_specific If TRUE the workflow is split into separate lists for each module element
+#' @param module_specific If TRUE the event list is split into separate lists for each module element
+#' @param aggregate_duplicate_events If TRUE the duplicate events occurring directly after each other are aggregated.
 #' @param idle_time Numeric describing after how many seconds an event is considered as idle.
 #' @param event_codes Dataframe with the event codes that are used to structure the log data
 #' @param tool_codes Dataframe with the tool codes that are used to assign each used tool to a common code
@@ -38,7 +39,8 @@
 #' @importFrom tibble add_column
 #' @importFrom dplyr coalesce
 get_event_list <- function (json_data, project_modules, scenario_elements,
-                            questionnaire_elements, module_specific=TRUE, idle_time=20,
+                            questionnaire_elements, module_specific=TRUE,
+                            aggregate_duplicate_events=FALSE, idle_time=20,
                             event_codes=lucar::event_codes, tool_codes=lucar::tool_codes, debug_mode=FALSE) {
 
   # return only the element with the current list of questionnaire elements if no events were recorded
@@ -217,6 +219,12 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
       event_list <- insert_idle_events(event_list, idle_time)
     }
 
+    # Aggregate the events if indicated by the corresponding argument
+    if (aggregate_duplicate_events) {
+      event_list <- aggregate_duplicates(event_list)
+    }
+
+
     # If indicated, split workflow into multiple lists, one for each module
     if (module_specific){
       full_event_list <- event_list %>%
@@ -294,5 +302,52 @@ insert_idle_events <- function (workflow, idle_time=5) {
 
   return(result_workflow)
 }
+
+
+#' Aggregate event data from a single participation
+#'
+#' Takes event data from a single participation and returns an aggregated form,
+#' where events with identical codes that occur directly after each other are
+#' aggregated to a single event. The duration values are correspondingly adjusted,
+#' and for each aggregated event an intensity is calculated that describes how
+#' many events occurred in the original form.
+#'
+#' @param event_list A list including the event data
+#'
+#' @return A list including the aggregated event data
+#'
+#' @importFrom dplyr %>%
+#' @importFrom dplyr mutate
+#' @importFrom dplyr filter
+#' @importFrom dplyr lag
+#' @importFrom dplyr lead
+#' @importFrom dplyr select
+#'
+aggregate_duplicates <- function (event_list) {
+
+  aggregated_event_list <- event_list %>%
+    # helper variable to check if the event_code is the same as the previous one
+    dplyr::mutate(previous_event_code=dplyr::lag(event_code)) %>%
+
+    # helper variable to later calculate the intensity (i.e. how often an event occurred)
+    dplyr::mutate(event_no=1:n()) %>%
+
+    # only keep those case where the current workflow code is different from the previous
+    dplyr::filter(event_code!=previous_event_code) %>%
+
+    # calculation of the activity duration after summarizing events with identical workflows codes occurring directly after each other
+    dplyr::mutate(event_duration=project_time-dplyr::lag(project_time)) %>%
+
+    # calculation  of the intensity (i.e. how how often the summarized events occurred in the original data set directly after each other)
+    dplyr::mutate(intensity=dplyr::lead(event_no)-event_no) %>%
+
+    # Deletion of temporary variables
+    dplyr::select(!previous_event_code, !event_no)
+
+  return(aggregated_event_list)
+}
+globalVariables(c("event_code", "previous_event_code", "project_time",
+                  "event_no", "time", "event_duration", "label", "intensity",
+                  "usage_type"))
 
 
