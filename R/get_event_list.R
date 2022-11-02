@@ -6,8 +6,7 @@
 #' @param project_modules Dataframe including the running numbers and ids for the project modules
 #' @param scenario_elements Dataframe including the codes for all existing scenario elements, which are used in the event list.
 #' @param questionnaire_elements Dataframe including the codes for all questionnaire elements, which are used in the event list as well as in the summary results.
-#' @param module_specific If TRUE the event list is split into separate lists for each module element
-#' @param aggregate_duplicate_events If TRUE the duplicate events occurring directly after each other are aggregated.
+#' @param aggregate_duplicate_events If TRUE duplicate events occurring directly after each other are aggregated.
 #' @param idle_time Numeric describing after how many seconds an event is considered as idle.
 #' @param event_codes Dataframe with the event codes that are used to structure the log data
 #' @param tool_codes Dataframe with the tool codes that are used to assign each used tool to a common code
@@ -39,8 +38,7 @@
 #' @importFrom tibble add_column
 #' @importFrom dplyr coalesce
 get_event_list <- function (json_data, project_modules, scenario_elements,
-                            questionnaire_elements, module_specific=TRUE,
-                            aggregate_duplicate_events=FALSE, idle_time=20,
+                            questionnaire_elements, aggregate_duplicate_events=FALSE, idle_time,
                             event_codes=lucar::event_codes, tool_codes=lucar::tool_codes, debug_mode=FALSE) {
 
   # return only the element with the current list of questionnaire elements if no events were recorded
@@ -201,14 +199,12 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
     { if (length(scenario_elements)>0) {
       # Fill missings in variable data with the value provided in the variable name (usually the name of the file the participant is working with)
       dplyr::mutate(., data=dplyr::coalesce(data, name))
-      } else {
-        .
-      }
+      } else {.}
     } %>%
 
     # select final set of variables
-    dplyr::select(invitation_id, survey_id, module_id, time, project_time, event_duration,
-           label, event_code, data, event_type, data2, binary_file_id, email_id, spreadsheet_id, file_id) %>%
+    dplyr::select(invitation_id, survey_id, module_id, time, code=event_code, duration=event_duration,
+           label, data, project_time, type=event_type, data2, binary_file_id, email_id, spreadsheet_id, file_id) %>%
 
     # Removing hash IDs and debugging variables if 'debug_mode' is set to `FALSE`
     dplyr::select_if(debug_mode|!grepl("^event_type$|^data2$|^id$|_id$", names(.)))
@@ -224,22 +220,21 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
       event_list <- aggregate_duplicates(event_list)
     }
 
-
-    # If indicated, split workflow into multiple lists, one for each module
-    if (module_specific){
+    # If function is not called in debug mode, split workflow into multiple lists, one for each module
+    if (!debug_mode){
       full_event_list <- event_list %>%
         dplyr::mutate(module_time=project_time, .after=project_time)
       event_list <- list()
       for (module_code in project_modules$code){
 
         # Extracting the starting and ending event for the current module code
-        first_module_event <- grep(paste0("^M",module_code,"STR_SCN$|^M",module_code,"STR_QST$"), full_event_list$event_code)
+        first_module_event <- grep(paste0("^M",module_code,"STR_SCN$|^M",module_code,"STR_QST$"), full_event_list$code)
 
         # Making sure that the module was started - otherwise return NULL for this modules event list
         if (length(first_module_event)!=0) {
-          last_module_event <- grep(paste0("^M",module_code,"END_SCN$|^M",module_code,"END_QST$"), full_event_list$event_code)
+          last_module_event <- grep(paste0("^M",module_code,"END_SCN$|^M",module_code,"END_QST$"), full_event_list$code)
           # Checking if the participation was interrupted before the regular end and therefore no ending event is found
-          last_module_event <- ifelse (length(last_module_event)==0, length(full_event_list$event_code), last_module_event)
+          last_module_event <- ifelse (length(last_module_event)==0, length(full_event_list$code), last_module_event)
 
           # Assigning the events from module starting to ending event to the current module
           event_list[[module_code]] <- slice(full_event_list, c(first_module_event:last_module_event))
@@ -253,6 +248,7 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
       }
     }
 
+  # Add current table with scenario elements to the result object
   event_list[["scenario_elements"]] <- scenario_elements
 
   return(event_list)
@@ -262,7 +258,7 @@ globalVariables(c("timestamp", "eventType", "index", "invitationId", "surveyId",
                   "binaryFileId", "spreadsheetId", "fileId", "emailId",
                   "element_code", "tool", "mimeType", "module_id", "questionId",
                   "answerId", "name", "data2", "binary_file_id", "email_id",
-                  "spreadsheet_id", "file_id", "questionnaireId"))
+                  "spreadsheet_id", "file_id", "questionnaireId", "event_code", "event_duration"))
 
 
 ###############################################################################
@@ -274,7 +270,7 @@ globalVariables(c("timestamp", "eventType", "index", "invitationId", "surveyId",
 #' including additional events that are marked as idle when the participant was
 #' not active for more than `idle_time` seconds.
 #'
-#' @param workflow A list including the event data
+#' @param event_list A list including the event data
 #' @param idle_time Numeric describing after how many seconds an event is
 #'   considered as idle.
 #'
@@ -284,25 +280,25 @@ globalVariables(c("timestamp", "eventType", "index", "invitationId", "surveyId",
 #' @importFrom dplyr filter
 #' @importFrom dplyr lead
 #' @importFrom dplyr mutate
-insert_idle_events <- function (workflow, idle_time=5) {
+insert_idle_events <- function (event_list, idle_time=5) {
 
-  idle_events <- workflow %>%
+  idle_events <- event_list %>%
     # helper variable to chek if the event_code is the same as the previous one
-    dplyr::filter(event_duration>idle_time) %>%
+    dplyr::filter(duration>idle_time) %>%
     dplyr::mutate(project_time=project_time+idle_time) %>%
-    dplyr::mutate(event_code=paste0(substr(event_code, 1,6),"_IDL")) %>%
+    dplyr::mutate(code=paste0(substr(code, 1,6),"_IDL")) %>%
     dplyr::mutate(label=paste0("Idled ", label))
 
-  result_workflow <- rbind(workflow, idle_events) %>%
+  result_event_list <- rbind(event_list, idle_events) %>%
     # Sort enlarged event list according to time
     arrange(time) %>%
     # Calculation of the corrected event durations after inserting the idle events
     dplyr::mutate(event_duration=dplyr::lead(project_time)-project_time)
 
 
-  return(result_workflow)
+  return(result_event_list)
 }
-
+globalVariables(c("duration"))
 
 #' Aggregate event data from a single participation
 #'
@@ -327,27 +323,27 @@ aggregate_duplicates <- function (event_list) {
 
   aggregated_event_list <- event_list %>%
     # helper variable to check if the event_code is the same as the previous one
-    dplyr::mutate(previous_event_code=dplyr::lag(event_code)) %>%
+    dplyr::mutate(previous_code=dplyr::lag(code)) %>%
 
     # helper variable to later calculate the intensity (i.e. how often an event occurred)
     dplyr::mutate(event_no=1:n()) %>%
 
     # only keep those case where the current workflow code is different from the previous
-    dplyr::filter(event_code!=previous_event_code) %>%
+    dplyr::filter(code!=previous_code) %>%
 
     # calculation of the activity duration after summarizing events with identical workflows codes occurring directly after each other
-    dplyr::mutate(event_duration=project_time-dplyr::lag(project_time)) %>%
+    dplyr::mutate(duration=project_time-dplyr::lag(project_time)) %>%
 
     # calculation  of the intensity (i.e. how how often the summarized events occurred in the original data set directly after each other)
     dplyr::mutate(intensity=dplyr::lead(event_no)-event_no) %>%
 
-    # Deletion of temporary variables
-    dplyr::select(!previous_event_code, !event_no)
+    # Selection and sort of returned variables
+    dplyr::select(time, code, duration, intensity, label, data, project_time)
 
   return(aggregated_event_list)
 }
-globalVariables(c("event_code", "previous_event_code", "project_time",
-                  "event_no", "time", "event_duration", "label", "intensity",
+globalVariables(c("code", "previous_code", "project_time",
+                  "event_no", "time", "duration", "label", "intensity",
                   "usage_type"))
 
 
