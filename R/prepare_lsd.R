@@ -51,18 +51,11 @@
 #' @importFrom rjson fromJSON
 #' @importFrom dplyr tibble
 #' @export
-prepare_lsd <- function (path = "./", aggregate_duplicate_events=FALSE, idle_time=20,
+prepare_lsd <- function (path = "./", aggregate_duplicate_events=FALSE, idle_time=10,
                          unzip = TRUE, event_codes=lucar::event_codes,
                          tool_codes=lucar::tool_codes, debug_mode=FALSE) {
 
   cat("\n")
-
-  # Setting 'module_specific' workflow preparation to FALSE for debugging mode and TRUE otherwise
-  if (debug_mode) {
-    module_specific <- FALSE
-  } else {
-    module_specific <- TRUE
-  }
 
   # unzip files if indicated by function argument
   if (unzip){
@@ -71,7 +64,7 @@ prepare_lsd <- function (path = "./", aggregate_duplicate_events=FALSE, idle_tim
     cat(length(zip_files), "zip archives with survey data found.\n")
     if (length(zip_files>0)){
       cat("-> Unzipping archives ")
-      path_temp <- file.path(path, "temp")
+      path_temp <- tempdir()
       for (zip_file in zip_files){
         cat(".")
         # extract all zip archives to a "temp" folder in the given path (will be created)
@@ -125,11 +118,9 @@ prepare_lsd <- function (path = "./", aggregate_duplicate_events=FALSE, idle_tim
 
     # add new list element with the event data, naming it with the ID of the participation
     element_name <- sub('\\..*$', '', basename(json_file))
-    event_list[[element_name]] <- get_event_list(json_data, project_modules, scenario_elements,
-                                                 questionnaire_elements, module_specific=module_specific,
+    event_list[[element_name]] <- get_event_list(json_data, project_modules, scenario_elements, questionnaire_elements,
                                                  aggregate_duplicate_events=aggregate_duplicate_events,
-                                                 idle_time=idle_time, event_codes, tool_codes,
-                                                 debug_mode=debug_mode)
+                                                 idle_time=idle_time, event_codes, tool_codes, debug_mode=debug_mode)
     # Assigned mail recipient codes are stored in an extra variable and removed from the participant's event list
     scenario_elements <- event_list[[element_name]]$scenario_elements
     event_list[[element_name]]$scenario_elements <- NULL
@@ -169,21 +160,20 @@ prepare_lsd <- function (path = "./", aggregate_duplicate_events=FALSE, idle_tim
   rater <- rater %>%
     dplyr::select_if(debug_mode|!grepl("_id$", names(.)))
 
-  # preparation of the anser object
+  # preparation of the answer object
   survey_data <- list(participation_data=participation_data,
                       project_modules=project_modules,
                       scenario_elements=scenario_elements,
                       questionnaire_elements=questionnaire_elements,
                       rater=rater)
+
   # add table including unknown events if indicated
   if (debug_mode) {
     prepared_logdata[["unknown_events"]] <- unknown_events
   }
 
-
   # delete temp folder with unzipped survey data
   if (!is.null(path_temp)) {
-    cat("Temp folder with unzipped survey data deleted.\n")
     unlink(path_temp, recursive=TRUE)
   }
 
