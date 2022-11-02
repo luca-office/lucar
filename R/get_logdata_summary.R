@@ -61,9 +61,7 @@ get_logdata_summary <- function (json_data, event_list, debug_mode=FALSE) {
     }
     # actual event lists are provided at the end of the tibble
     for (module in names(event_list)) {
-      logdata_summary[[paste0("module_",module, "_events")]] <- list(event_list[[module]]$event_code)
-      logdata_summary[[paste0("module_",module, "_event_durations")]] <- list(event_list[[module]]$event_duration)
-      logdata_summary[[paste0("module_",module, "_event_time")]] <- list(event_list[[module]]$module_time)
+      logdata_summary[[paste0("module_",module, "_event_list")]] <- list(event_list[[module]])
     }
   }
 
