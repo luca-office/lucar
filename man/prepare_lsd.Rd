@@ -7,7 +7,7 @@
 prepare_lsd(
   path = "./",
   aggregate_duplicate_events = FALSE,
-  idle_time = 20,
+  idle_time = 10,
   unzip = TRUE,
   event_codes = lucar::event_codes,
   tool_codes = lucar::tool_codes,

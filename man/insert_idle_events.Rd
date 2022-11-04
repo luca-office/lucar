@@ -4,10 +4,10 @@
 \alias{insert_idle_events}
 \title{Inserts event that are marked as idle}
 \usage{
-insert_idle_events(workflow, idle_time = 5)
+insert_idle_events(event_list, idle_time = 5)
 }
 \arguments{
-\item{workflow}{A list including the event data}
+\item{event_list}{A list including the event data}
 
 \item{idle_time}{Numeric describing after how many seconds an event is
 considered as idle.}

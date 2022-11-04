@@ -27,5 +27,6 @@ Imports:
     rlang,
     tibble,
     readr,
-    tidyselect
+    tidyselect,
+    purrrlyr
 LazyData: true

@@ -9,9 +9,8 @@ get_event_list(
   project_modules,
   scenario_elements,
   questionnaire_elements,
-  module_specific = TRUE,
   aggregate_duplicate_events = FALSE,
-  idle_time = 20,
+  idle_time,
   event_codes = lucar::event_codes,
   tool_codes = lucar::tool_codes,
   debug_mode = FALSE
@@ -26,9 +25,7 @@ get_event_list(
 
 \item{questionnaire_elements}{Dataframe including the codes for all questionnaire elements, which are used in the event list as well as in the summary results.}
 
-\item{module_specific}{If TRUE the event list is split into separate lists for each module element}
-
-\item{aggregate_duplicate_events}{If TRUE the duplicate events occurring directly after each other are aggregated.}
+\item{aggregate_duplicate_events}{If TRUE duplicate events occurring directly after each other are aggregated.}
 
 \item{idle_time}{Numeric describing after how many seconds an event is considered as idle.}
 
