@@ -332,7 +332,7 @@ aggregate_duplicates <- function (event_list) {
     dplyr::filter(code!=previous_code) %>%
 
     # calculation of the activity duration after summarizing events with identical workflows codes occurring directly after each other
-    dplyr::mutate(duration=project_time-dplyr::lag(project_time)) %>%
+    dplyr::mutate(duration=dplyr::lead(project_time)-project_time) %>%
 
     # calculation  of the intensity (i.e. how how often the summarized events occurred in the original data set directly after each other)
     dplyr::mutate(intensity=dplyr::lead(event_no)-event_no) %>%
