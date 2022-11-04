@@ -59,6 +59,7 @@ write_unique_events <- function (events, file="dev/unique_events.csv") {
 
   return(unique_events)
 }
+globalVariables(c("data_example"))
 
 
 #' Helper function to import tables including the basic coding information and
