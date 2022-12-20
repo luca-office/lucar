@@ -53,6 +53,7 @@ get_scenario_elements <- function (json_data) {
     )) %>%   # remove directories for sample company (unknown what these are for)
     dplyr::mutate(binary_file_id=NA, spreadsheet_id=NA, usage_type="FileDirectory", relevance="Unknown", doc_type="directory") %>% # renaming variables according to the general format
     dplyr::select(id, binary_file_id, spreadsheet_id, sample_company_id=sampleCompanyId, name, usage_type, relevance, doc_type) %>%   # select only relevant variables
+    tibble::add_row(name="Inbox", usage_type="MailFolder", relevance="Unknown", doc_type="directory") %>% # add system mail folder
     tibble::add_row(name="Draft", usage_type="MailFolder", relevance="Unknown", doc_type="directory") %>% # add system mail folder
     tibble::add_row(name="Sent", usage_type="MailFolder", relevance="Unknown", doc_type="directory") # add system mail folder
 
@@ -72,7 +73,7 @@ get_scenario_elements <- function (json_data) {
       }
     }
 
-  # tibble with info on the project files that are categorized according to their relevance
+  # tibble with info on the complete project files including those that are categorized according to their relevance
   binary_files <- json_data$binaryFiles %>%
     {
       if (length(.)==0) {
@@ -89,8 +90,39 @@ get_scenario_elements <- function (json_data) {
       }
     }
 
+  # tibble with info on the reference book chapters
+  book_chapters <- json_data$referenceBookChapters %>%
+    {
+      if (length(.)==0) {
+        dplyr::tibble()
+      } else {
+        purrr::map_depth(., 2, ~ replace(.x, is.null(.x), NA)) %>% # replacing NULL elements by NA
+          dplyr::bind_rows() %>%   # format list as dataframe
+          dplyr::mutate(doc_type="book_chapter") %>%  # extract file extension from file name
+          dplyr::mutate(relevance="Unknown") %>%  #  set id to NA to avoid redundancy
+          dplyr::mutate(binary_file_id=NA, spreadsheet_id=NA, sample_company_id=NA, usage_type=NA) %>%  #  add id variables to be congruent with the general structure
+          dplyr::select(id, binary_file_id, spreadsheet_id, sample_company_id, name=title, usage_type, relevance, doc_type)  # select only relevant variables      }
+      }
+    }
+
+  # tibble with info on the reference book articles
+  book_articles <- json_data$referenceBookArticles %>%
+    {
+      if (length(.)==0) {
+        dplyr::tibble()
+      } else {
+        purrr::map_depth(., 2, ~ replace(.x, is.null(.x), NA)) %>% # replacing NULL elements by NA
+          dplyr::bind_rows() %>%   # format list as dataframe
+          dplyr::mutate(doc_type="book_articles") %>%  # extract file extension from file name
+          dplyr::mutate(relevance="Unknown") %>%  #  set id to NA to avoid redundancy
+          dplyr::mutate(binary_file_id=NA, spreadsheet_id=NA, sample_company_id=NA, usage_type=NA) %>%  #  add id variables to be congruent with the general structure
+          dplyr::select(id, binary_file_id, spreadsheet_id, sample_company_id, name=title, usage_type, relevance, doc_type)  # select only relevant variables      }
+      }
+    }
+
+
   # combining the elements in a single table
-  scenario_elements <- rbind(emails, directories, files, binary_files) %>%
+  scenario_elements <- rbind(emails, directories, files, binary_files, book_chapters, book_articles) %>%
     {
       if (length(.)>0) {
         # Remove duplicates included in 'files' and 'binary_files' (elements from 'files' will be kept)

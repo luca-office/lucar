@@ -158,7 +158,7 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
                                         event_type=="EndScenario" ~ endType,
                                         event_type=="OpenSpreadsheet" | event_type=="SelectSpreadsheet" ~ spreadsheetTitle,
                                         event_type=="SelectSpreadsheetCell" ~ cellName,
-                                        event_type=="UpdateSpreadsheetCellStyle" ~ paste0(cellName, ": ", rjson::toJSON(style)),
+                                        event_type=="UpdateSpreadsheetCellStyle" ~ cellName,
                                         event_type=="UpdateSpreadsheetCellType" ~ paste0(cellName, ": ", cellType),
                                         event_type=="UpdateSpreadsheetCellValue" ~ paste0(cellName, ": ", value),
                                         event_type=="ViewFile" ~ mimeType,
@@ -188,6 +188,8 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
         dplyr::left_join(select(scenario_elements,-c("binary_file_id", "spreadsheet_id")), by=c("email_id"="id"), na_matches="never") %>%
         dplyr::left_join(select(scenario_elements,-c("binary_file_id","spreadsheet_id", "id")), by=c("data"="name"), na_matches="never") %>% # for mail folders
         dplyr::left_join(select(scenario_elements,-c("binary_file_id","spreadsheet_id")), by=c("data"="id"), na_matches="never") %>% # for file directories
+        dplyr::left_join(select(scenario_elements,-c("binary_file_id","spreadsheet_id")), by=c("chapterId"="id"), na_matches="never") %>% # for file directories
+        dplyr::left_join(select(scenario_elements,-c("binary_file_id","spreadsheet_id")), by=c("articleId"="id"), na_matches="never") %>% # for file directories
 
         # merge relevant variables (replacing NAs with values included due to subsequent joins above) and replace NAs by empty string
         dplyr::mutate(name=dplyr::coalesce(!!!syms(grep("^name",names(.), value=TRUE))),
