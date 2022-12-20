@@ -19,8 +19,13 @@
 #' @importFrom dplyr select
 #' @importFrom dplyr n
 #' @importFrom dplyr coalesce
+#' @importFrom dplyr left_join
 #' @importFrom stringr str_pad
 get_project_modules <- function (json_data) {
+
+  # get sample company to include the corresponding titles
+  sample_companies <- get_sample_companies(json_data) %>%
+    select(sampleCompanyId=id, sample_company_title=title)
 
   # tibble with info on the project files that are categorized according to their relevance
   modules <- json_data$project$projectModules %>%
@@ -31,7 +36,8 @@ get_project_modules <- function (json_data) {
     dplyr::mutate(module_id=dplyr::coalesce(.$questionnaireId, .$scenarioId)) %>%
     dplyr::mutate(type=dplyr::case_when(!is.na(scenarioId) ~ "scenario",
                                                !is.na(questionnaireId) ~ "questionnaire")) %>%
-    dplyr::select(code, type, title, module_id, sample_company_id=sampleCompanyId) # select only relevant variables
+    dplyr::left_join(sample_companies, by="sampleCompanyId", na_matches="never") %>%
+    dplyr::select(code, type, title, module_id, sample_company_title, sample_company_id=sampleCompanyId) # select only relevant variables
   return(modules)
 }
-globalVariables(c("position", "code", "type", "title", "module_id", "sampleCompanyId"))
+globalVariables(c("position", "code", "type", "title", "module_id", "sampleCompanyId", "sample_company_title"))
