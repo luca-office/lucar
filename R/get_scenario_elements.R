@@ -19,6 +19,9 @@
 #' @importFrom dplyr bind_rows
 #' @importFrom dplyr mutate
 #' @importFrom dplyr select
+#' @importFrom dplyr left_join
+#' @importFrom dplyr case_when
+#' @importFrom tibble add_row
 #' @export
 get_scenario_elements <- function (json_data) {
 
@@ -31,10 +34,27 @@ get_scenario_elements <- function (json_data) {
         lapply(., function(x) x[names(x)!="ccRecipients"]) %>% # removing ccRecipients since it has different types depending on its content
         purrr::map_depth(2, ~ replace(.x, is.null(.x), NA)) %>% # replacing NULL elements by NA
         dplyr::bind_rows() %>%   # format list as dataframe
-        dplyr::mutate(binary_file_id=NA, spreadsheet_id=NA, name=subject, usage_type="Email", relevance, doc_type="mail") %>% # renaming variables according to the general format
-        dplyr::select(id, binary_file_id, spreadsheet_id, name, usage_type, relevance, doc_type)  # select only relevant variables
+        dplyr::mutate(binary_file_id=NA, spreadsheet_id=NA, sample_company_id=NA, name=subject, usage_type="Email", relevance, doc_type="mail") %>% # renaming variables according to the general format
+        dplyr::select(id, binary_file_id, spreadsheet_id, sample_company_id, name, usage_type, relevance, doc_type)  # select only relevant variables
       }
     }
+
+  # get sample company to include the corresponding titles in the companies file archive
+  sample_companies <- get_sample_companies(json_data) %>%
+    select(sampleCompanyId=id, sample_company_title=title)
+
+  directories <-json_data$directories %>%
+    purrr::map_depth(2, ~ replace(.x, is.null(.x), NA)) %>% # replacing NULL elements by NA
+    dplyr::bind_rows() %>%   # format list as dataframe
+    dplyr::left_join(sample_companies, by="sampleCompanyId", na_matches="never") %>%
+    dplyr::mutate(name=dplyr::case_when(
+      name=="" ~ paste0("Company Directory for ", sample_company_title),
+      TRUE ~ as.character(name)
+    )) %>%   # remove directories for sample company (unknown what these are for)
+    dplyr::mutate(binary_file_id=NA, spreadsheet_id=NA, usage_type="FileDirectory", relevance="Unknown", doc_type="directory") %>% # renaming variables according to the general format
+    dplyr::select(id, binary_file_id, spreadsheet_id, sample_company_id=sampleCompanyId, name, usage_type, relevance, doc_type) %>%   # select only relevant variables
+    tibble::add_row(name="Draft", usage_type="MailFolder", relevance="Unknown", doc_type="directory") %>% # add system mail folder
+    tibble::add_row(name="Sent", usage_type="MailFolder", relevance="Unknown", doc_type="directory") # add system mail folder
 
 
   # tibble with info on the project files that are categorized according to their relevance
@@ -47,16 +67,36 @@ get_scenario_elements <- function (json_data) {
         dplyr::bind_rows() %>%   # format list as dataframe
         dplyr::mutate(doc_type=sub(pattern = "(.*)\\.", replacement = "", name)) %>%  # extract file extension from file name
         dplyr::filter(!duplicated(binaryFileId, incomparables = NA)) %>%
-        dplyr::select(id, binary_file_id=binaryFileId, spreadsheet_id=spreadsheetId, name, usage_type=usageType, relevance, doc_type)  # select only relevant variables      }
+        dplyr::mutate(sample_company_id=NA) %>%  #  add id variable to be congruent with directories structure
+        dplyr::select(id, binary_file_id=binaryFileId, spreadsheet_id=spreadsheetId, sample_company_id, name, usage_type=usageType, relevance, doc_type)  # select only relevant variables      }
+      }
+    }
+
+  # tibble with info on the project files that are categorized according to their relevance
+  binary_files <- json_data$binaryFiles %>%
+    {
+      if (length(.)==0) {
+        dplyr::tibble()
+      } else {
+        purrr::map_depth(., 2, ~ replace(.x, is.null(.x), NA)) %>% # replacing NULL elements by NA
+          dplyr::bind_rows() %>%   # format list as dataframe
+          dplyr::mutate(doc_type=sub(pattern = "(.*)\\.", replacement = "", filename)) %>%  # extract file extension from file name
+          dplyr::mutate(binary_file_id=id) %>%  #  the given id variable corresponds to the binary file id given for the elements under 'files'
+          dplyr::mutate(id=NA) %>%  #  set id to NA to avoid redundancy
+          dplyr::mutate(relevance="Unknown") %>%  #  set id to NA to avoid redundancy
+          dplyr::mutate(spreadsheet_id=NA, sample_company_id=NA, usage_type=NA) %>%  #  add id variables to be congruent with the general structure
+          dplyr::select(id, binary_file_id, spreadsheet_id, sample_company_id, name=filename, usage_type, relevance, doc_type)  # select only relevant variables      }
       }
     }
 
   # combining the elements in a single table
-  scenario_elements <- rbind(emails, files) %>%
+  scenario_elements <- rbind(emails, directories, files, binary_files) %>%
     {
       if (length(.)>0) {
+        # Remove duplicates included in 'files' and 'binary_files' (elements from 'files' will be kept)
+        dplyr::filter(., !duplicated(binary_file_id, incomparables = NA)) %>%
         # setting the running workflow codes for each project element
-        dplyr::mutate(., element_code=construct_element_code(relevance), .before = 1)
+        dplyr::mutate(element_code=construct_element_code(relevance), .before = 1)
       } else {
         dplyr::tibble()
       }
@@ -65,7 +105,8 @@ get_scenario_elements <- function (json_data) {
   return(scenario_elements)
 }
 globalVariables(c("subject", "relevance", "id", "binary_file_id", "spreadsheet_id",
-                  "name", "doc_type", "binaryFileId", "spreadsheetId", "usageType"))
+                  "name", "doc_type", "binaryFileId", "spreadsheetId", "usageType",
+                  "sample_company_id", "filename"))
 
 
 #' Helper function to assign the running event code for elements of the same type
@@ -75,7 +116,7 @@ globalVariables(c("subject", "relevance", "id", "binary_file_id", "spreadsheet_i
 #' @importFrom dplyr recode
 #' @importFrom stringr str_pad
 construct_element_code <- function(relevance){
-  event_code <- paste0(recode(substr(relevance, 1, 1), "I"=0, "P"=1, "R"=2),
+  event_code <- paste0(recode(substr(relevance, 1, 1), "I"=0, "P"=1, "R"=2, "U"=9),
          stringr::str_pad(1:length(relevance), width=3, side="left", pad="0"))
   return (event_code)
 }

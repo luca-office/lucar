@@ -37,6 +37,7 @@
 #' @importFrom dplyr arrange
 #' @importFrom tibble add_column
 #' @importFrom dplyr coalesce
+#' @importFrom rjson toJSON
 get_event_list <- function (json_data, project_modules, scenario_elements,
                             questionnaire_elements, aggregate_duplicate_events=FALSE, idle_time,
                             event_codes=lucar::event_codes, tool_codes=lucar::tool_codes, debug_mode=FALSE) {
@@ -99,26 +100,6 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
     # Combine the questionnaire and scenario id to a single module_id variable
     dplyr::mutate(module_id=dplyr::coalesce(.$scenarioId, .$questionnaireId)) %>%
 
-    # The following steps are only conducted for a not empty list of scenario elements (i.e. not only questionnaires were defined but also scenarios)
-    { if (length(scenario_elements)>0) {
-        # match event ids with the ids of the scenario elements (if scenario element)
-        dplyr::left_join(., select(scenario_elements,-c("binary_file_id","spreadsheet_id")), by="id", na_matches="never") %>%
-        dplyr::left_join(select(scenario_elements,-c("id","spreadsheet_id")), by="binary_file_id", na_matches="never") %>%
-        dplyr::left_join(select(scenario_elements,-c("id","binary_file_id")), by="spreadsheet_id", na_matches="never") %>%
-        dplyr::left_join(select(scenario_elements,-c("id","spreadsheet_id")), by=c("file_id"="binary_file_id"), na_matches="never") %>%
-        dplyr::left_join(select(scenario_elements,-c("binary_file_id", "spreadsheet_id")), by=c("email_id"="id"), na_matches="never") %>%
-
-        # merge relevant variables (replacing NAs with values included due to subsequent joins above) and replace NAs by empty string
-        dplyr::mutate(name=dplyr::coalesce(!!!syms(grep("^name",names(.), value=TRUE))),
-                      usage_type=dplyr::coalesce(!!!syms(grep("^usage_type",names(.), value=TRUE))),
-                      element_code=dplyr::coalesce(!!!syms(grep("^element_code",names(.), value=TRUE))),
-                      element_code=replace(element_code, is.na(element_code), "")) %>%
-
-        # join basic event codes with individual project element code
-        dplyr::mutate(event_code=paste0(event_code, element_code))
-      } else {.}
-    } %>%
-
     # Order events according to their time stamps (this step might be unnecessary once the log data generation is corrected in LUCA office)
     arrange(time) %>%
 
@@ -177,13 +158,14 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
                                         event_type=="EndScenario" ~ endType,
                                         event_type=="OpenSpreadsheet" | event_type=="SelectSpreadsheet" ~ spreadsheetTitle,
                                         event_type=="SelectSpreadsheetCell" ~ cellName,
+                                        event_type=="UpdateSpreadsheetCellStyle" ~ paste0(cellName, ": ", rjson::toJSON(style)),
+                                        event_type=="UpdateSpreadsheetCellType" ~ paste0(cellName, ": ", cellType),
                                         event_type=="UpdateSpreadsheetCellValue" ~ paste0(cellName, ": ", value),
-                                        event_type=="SelectSpreadsheetCellRange" ~ paste0(startCellName, " : ", endCellName),
                                         event_type=="ViewFile" ~ mimeType,
-                                        event_type=="ViewDirectory" ~ paste0("Directory ID: ", directoryId),
+                                        event_type=="ViewDirectory" ~ directoryId,
                                         event_type=="OpenPdfBinary" | event_type=="SelectPdfBinary" | event_type=="SelectImageBinary" | event_type=="OpenImageBinary" | event_type=="OpenVideoBinary" | event_type=="SelectVideoBinary" ~ binaryFileTitle,
                                         event_type=="SendParticipantChatMessage" | event_type=="ReceiveSupervisorChatMessage" ~ message,
-                                        event_type=="PasteFromClipboard" ~ content,
+                                        event_type=="PasteFromClipboard" | event_type=="CopyToClipboard" ~ content,
                                         event_type=="SelectQuestionnaireAnswer" | event_type=="UpdateQuestionnaireFreeTextAnswer" ~ value,
                                         event_type=="EvaluateIntervention" ~ paste0("Occurred: ", occurred, ", Intervention ID: ", interventionId),
                                         event_type=="OpenTextDocument" ~ textDocumentTitle,
@@ -197,8 +179,27 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
 
     # The following step is only conducted for a not empty list of scenario elements (in case only questionnaires were defined)
     { if (length(scenario_elements)>0) {
-      # Fill missings in variable data with the value provided in the variable name (usually the name of the file the participant is working with)
-      dplyr::mutate(., data=dplyr::coalesce(data, name))
+      # match event ids with the ids of the scenario elements (if scenario element)
+      dplyr::left_join(., select(scenario_elements,-c("binary_file_id","spreadsheet_id")), by="id", na_matches="never") %>%
+        dplyr::left_join(select(scenario_elements,-c("id","spreadsheet_id")), by="binary_file_id", na_matches="never") %>%
+        dplyr::left_join(select(scenario_elements,-c("id","binary_file_id")), by="spreadsheet_id", na_matches="never") %>%
+        dplyr::left_join(select(scenario_elements,-c("id","spreadsheet_id")), by=c("file_id"="binary_file_id"), na_matches="never") %>%
+        dplyr::left_join(select(scenario_elements,-c("binary_file_id", "spreadsheet_id")), by=c("file_id"="id"), na_matches="never") %>%
+        dplyr::left_join(select(scenario_elements,-c("binary_file_id", "spreadsheet_id")), by=c("email_id"="id"), na_matches="never") %>%
+        dplyr::left_join(select(scenario_elements,-c("binary_file_id","spreadsheet_id", "id")), by=c("data"="name"), na_matches="never") %>% # for mail folders
+        dplyr::left_join(select(scenario_elements,-c("binary_file_id","spreadsheet_id")), by=c("data"="id"), na_matches="never") %>% # for file directories
+
+        # merge relevant variables (replacing NAs with values included due to subsequent joins above) and replace NAs by empty string
+        dplyr::mutate(name=dplyr::coalesce(!!!syms(grep("^name",names(.), value=TRUE))),
+                      usage_type=dplyr::coalesce(!!!syms(grep("^usage_type",names(.), value=TRUE))),
+                      element_code=dplyr::coalesce(!!!syms(grep("^element_code",names(.), value=TRUE))),
+                      element_code=replace(element_code, is.na(element_code), "")) %>%
+
+        # join basic event codes with individual project element code
+        dplyr::mutate(event_code=paste0(event_code, element_code)) %>%
+
+        # Fill missings in variable data with the value provided in the variable name (usually this will be the name of the file the participant is working with)
+        dplyr::mutate(., data=dplyr::coalesce(data, name))
       } else {.}
     } %>%
 
@@ -246,10 +247,10 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
         }
 
       }
+      # Add current table with scenario elements to the result object
+      event_list[["scenario_elements"]] <- scenario_elements
     }
 
-  # Add current table with scenario elements to the result object
-  event_list[["scenario_elements"]] <- scenario_elements
 
   return(event_list)
 }
