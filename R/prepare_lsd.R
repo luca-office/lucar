@@ -57,31 +57,47 @@ prepare_lsd <- function (path = "./", aggregate_duplicate_events=FALSE, idle_tim
 
   cat("\n")
 
+  # TODO; Check if path leads to a file the prepare that file.exists
+
   # unzip files if indicated by function argument
   if (unzip){
     # get all zip files that correspond to the naming convention of a LUCA survey data archive
-    zip_files <- grep("^Luca-Erhebungsdaten-.*\\.zip$", list.files(path), value=TRUE)
-    cat(length(zip_files), "zip archives with survey data found.\n")
+    zip_files <- grep("^Luca-Erhebungsdaten-.*\\.zip$", list.files(path, recursive = TRUE), value=TRUE)
+    # temp folder will always be generated, so the check on json files below does not leed to an error
+    path_temp <- tempdir()
     if (length(zip_files>0)){
+      cat(length(zip_files), "zip archives with survey data found.\n")
       cat("-> Unzipping archives ")
-      path_temp <- tempdir()
       for (zip_file in zip_files){
         cat(".")
         # extract all zip archives to a "temp" folder in the given path (will be created)
-        unzip(file.path(path, zip_file), exdir = file.path(path, "temp"))
+        unzip(file.path(path, zip_file), exdir = path_temp)
       }
       cat(" done!\n\n")
-    } else {
-      path_temp <- NULL
     }
   }
 
   # Get all JSON files located in the given path (including all subfolders)
-  json_files <- grep("\\.json$", list.files(path, full.names=TRUE, recursive=TRUE), value=TRUE)
-  cat(length(json_files), "files with participation data found.\n")
+  json_files <- c(grep("\\.json$", list.files(path, full.names=TRUE, recursive=TRUE), value=TRUE),
+                  grep("\\.json$", list.files(path_temp, full.names=TRUE, recursive=TRUE), value=TRUE))
+  # if no folder was provided but the name of an archive, length will be zero, and
+  # it will be checked on a json or zip file archive
   if (length(json_files)==0) {
-    return(dplyr::tibble())
+    if (file.exists(path) & grepl("\\.json$", path)){
+      json_files <- path
+    } else if (file.exists(path) & grep("Luca-Erhebungsdaten-.*\\.zip$", path)) {
+      cat("1 zip archive with survey data found.\n")
+      cat("-> Unzipping archive .")
+      unzip(path, exdir = path_temp)
+      cat(" done!\n\n")
+      json_files <- grep("\\.json$", list.files(path_temp, full.names=TRUE, recursive=TRUE), value=TRUE)
+    } else{
+      cat("No files with participation data found.\n")
+      return(dplyr::tibble())
+    }
   }
+  cat(length(json_files), "files with participation data found.\n")
+
 
   # Initialization of objects for the result object
   participation_data <- dplyr::tibble(project=character())
