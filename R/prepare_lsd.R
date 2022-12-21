@@ -63,10 +63,10 @@ prepare_lsd <- function (path = "./", aggregate_duplicate_events=FALSE, idle_tim
   if (unzip){
     # get all zip files that correspond to the naming convention of a LUCA survey data archive
     zip_files <- grep("^Luca-Erhebungsdaten-.*\\.zip$", list.files(path, recursive = TRUE), value=TRUE)
-    cat(length(zip_files), "zip archives with survey data found.\n")
     # temp folder will always be generated, so the check on json files below does not leed to an error
     path_temp <- tempdir()
     if (length(zip_files>0)){
+      cat(length(zip_files), "zip archives with survey data found.\n")
       cat("-> Unzipping archives ")
       for (zip_file in zip_files){
         cat(".")
@@ -83,10 +83,13 @@ prepare_lsd <- function (path = "./", aggregate_duplicate_events=FALSE, idle_tim
   # if no folder was provided but the name of an archive, length will be zero, and
   # it will be checked on a json or zip file archive
   if (length(json_files)==0) {
-    if (file.exists(path) & grep("\\.json$", path)){
+    if (file.exists(path) & grepl("\\.json$", path)){
       json_files <- path
     } else if (file.exists(path) & grep("Luca-Erhebungsdaten-.*\\.zip$", path)) {
+      cat("1 zip archive with survey data found.\n")
+      cat("-> Unzipping archive .")
       unzip(path, exdir = path_temp)
+      cat(" done!\n\n")
       json_files <- grep("\\.json$", list.files(path_temp, full.names=TRUE, recursive=TRUE), value=TRUE)
     } else{
       cat("No files with participation data found.\n")
