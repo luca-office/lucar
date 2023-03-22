@@ -72,7 +72,7 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
                                  directoryId=NA_character_, textDocumentTitle=NA_character_, tableType=NA_character_, columnName=NA_character_,
                                  rowId=NA_character_, tableName=NA_character_, scenarioId=NA_character_, questionnaireId=NA_character_,
                                  binaryFileId=NA_character_, fileId=NA_character_, emailId=NA_character_, questionId=NA_character_,
-                                 answerId=NA_character_, id=NA_character_, articleId=NA_character_, chapterId=NA_character_)
+                                 answerId=NA_character_, id=NA_character_, articleId=NA_character_, chapterId=NA_character_, cellType=NA_character_)
 
 
   event_list <-
