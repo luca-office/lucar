@@ -83,16 +83,18 @@ prepare_lsd <- function (path = "./", aggregate_duplicate_events=FALSE, idle_tim
   # if no folder was provided but the name of an archive, length will be zero, and
   # it will be checked on a json or zip file archive
   if (length(json_files)==0) {
-    if (file.exists(path) & grepl("\\.json$", path)){
-      json_files <- path
-    } else if (file.exists(path) & grep("Luca-Erhebungsdaten-.*\\.zip$", path)) {
-      cat("1 zip archive with survey data found.\n")
-      cat("-> Unzipping archive .")
-      unzip(path, exdir = path_temp)
-      cat(" done!\n\n")
-      json_files <- grep("\\.json$", list.files(path_temp, full.names=TRUE, recursive=TRUE), value=TRUE)
-    } else{
-      cat("No files with participation data found.\n")
+    if (file.exists(path)){
+      if (grepl("\\.json$", path)){
+        json_files <- path
+      } else if (grep("Luca-Erhebungsdaten-.*\\.zip$", path)) {
+        cat("1 zip archive with survey data found.\n")
+        cat("-> Unzipping archive .")
+        unzip(path, exdir = path_temp)
+        cat(" done!\n\n")
+        json_files <- grep("\\.json$", list.files(path_temp, full.names=TRUE, recursive=TRUE), value=TRUE)
+      }
+    } else {
+      cat("No json files with participation data or zip archives starting with 'Luca-Erhebungsdaten-' found.\n")
       return(dplyr::tibble())
     }
   }
