@@ -177,7 +177,7 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
                                         event_type=="UpdateEmail" ~ paste0("To: ", to, "; CC: ", cc, "; Subject: ", subject)
                                         )) %>%
 
-    # The following step is only conducted for a not empty list of scenario elements (in case only questionnaires were defined)
+    # The following step is only conducted for a not empty list of scenario elements (not only questionnaires were defined)
     { if (length(scenario_elements)>0) {
       # match event ids with the ids of the scenario elements (if scenario element)
       dplyr::left_join(., select(scenario_elements,-c("binary_file_id","spreadsheet_id")), by="id", na_matches="never") %>%
