@@ -5,6 +5,7 @@
 #'
 #' @param json_data The log data for a single participation in form of a json object
 #' @param event_list The prepared data from the workflow of the participant
+#' @param scenario_elements Table of scenario elements, their ids and other info
 #' @param debug_mode If TRUE the internal hash IDs for the project elements are included and no module specific data is returned.
 #'
 #' @return A dataframe (consisting of one row) including general information for a single participation
@@ -20,7 +21,7 @@
 #' @importFrom tibble tibble
 #' @importFrom dplyr mutate
 #' @importFrom dplyr select_if
-get_logdata_summary <- function (json_data, event_list, debug_mode=FALSE) {
+get_logdata_summary <- function (json_data, event_lists, scenario_elements, debug_mode=FALSE) {
 
   # Initialization of the dataframe row for the general answer data of the participant with its ID
   logdata_summary <- tibble::tibble(id = json_data$surveyInvitation$id) %>%
@@ -33,7 +34,7 @@ get_logdata_summary <- function (json_data, event_list, debug_mode=FALSE) {
            open_participation = json_data$surveyInvitation$isOpenParticipation,
            did_participate = FALSE) %>%
     # summary information for participants who have actually participated
-    { if (length(event_list)!=0) {
+    { if (length(event_lists)!=0) {
         dplyr::mutate(., did_participate = as.logical(length(json_data$surveyEvents)>0),
                       project_start = getTime(json_data$surveyInvitation$firstSurveyEventTimestamp),
                       project_end = getTime(json_data$surveyInvitation$lastSurveyEventTimestamp))
@@ -51,17 +52,37 @@ get_logdata_summary <- function (json_data, event_list, debug_mode=FALSE) {
              last_name = json_data$surveyEvents[[1]]$data$lastName)
   }
 
+
+  #T01CRA
+
+
+  # extract sent email answer
+  answer_sent <- NA
+
+  # extract last edited version for email to `completionEmailAddress` (if it was sent, it is equal to `answer_sent``)
+  answer_last_edit <- NA
+
+
   # If not debug mode: Add module specific summary information on the event lists
   # (i.e., in debug mode module specific info is not available)
   if (!debug_mode) {
-    # list summary values first
-    for (module in names(event_list)) {
-      logdata_summary[[paste0("module_",module, "_start_time")]] <- as.numeric(event_list[[module]]$project_time[1])
-      logdata_summary[[paste0("module_",module, "_total_duration")]] <- as.numeric(event_list[[module]]$module_time[length(event_list[[module]]$module_time)])
-    }
-    # actual event lists are provided at the end of the tibble
-    for (module in names(event_list)) {
-      logdata_summary[[paste0("module_",module, "_event_list")]] <- list(event_list[[module]])
+    for (module in names(event_lists)) {
+      module_events <- event_lists[[module]]
+
+      break
+
+      # extract sent email answer
+      answer_sent <- NA
+
+      # extract last edited version for email to `completionEmailAddress` (if it was sent, it is equal to `answer_sent``)
+      answer_last_edit <- NA
+
+
+      logdata_summary[[paste0("module_",module, "_start_time")]] <- as.numeric(module_events$project_time[1])
+      logdata_summary[[paste0("module_",module, "_total_duration")]] <- as.numeric(module_events$module_time[length(module_events$module_time)])
+      logdata_summary[[paste0("module_",module, "_answer_sent")]] <- answer_sent
+      logdata_summary[[paste0("module_",module, "_answer_last_edit")]] <- answer_last_edit
+      logdata_summary[[paste0("module_",module, "_event_list")]] <- list(module_events)
     }
   }
 
