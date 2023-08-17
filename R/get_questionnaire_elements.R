@@ -30,7 +30,7 @@ get_questionnaire_elements <- function (json_data) {
                                  rowId=NA_character_, tableName=NA_character_, scenarioId=NA_character_, questionnaireId=NA_character_,
                                  binaryFileId=NA_character_, fileId=NA_character_, emailId=NA_character_,
                                  questions_freetextQuestionCodingCriteria_id=NA_character_, questions_freetextQuestionCodingCriteria_description=NA_character_,
-                                 questions_freetextQuestionCodingCriteria_score=NA_character_)
+                                 questions_freetextQuestionCodingCriteria_score=NA_character_, maxDurationInSeconds=NA_character_)
 
 
   questionnaire_elements <- json_data$questionnaires %>%

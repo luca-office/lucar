@@ -34,6 +34,7 @@
 #' @importFrom plyr mapvalues
 #' @importFrom rlang syms
 #' @importFrom dplyr slice
+#' @importFrom dplyr starts_with
 #' @importFrom dplyr arrange
 #' @importFrom tibble add_column
 #' @importFrom dplyr coalesce
@@ -186,7 +187,11 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
         dplyr::left_join(select(scenario_elements,-c("id","spreadsheet_id")), by=c("file_id"="binary_file_id"), na_matches="never") %>%
         dplyr::left_join(select(scenario_elements,-c("binary_file_id", "spreadsheet_id")), by=c("file_id"="id"), na_matches="never") %>%
         dplyr::left_join(select(scenario_elements,-c("binary_file_id", "spreadsheet_id")), by=c("email_id"="id"), na_matches="never") %>%
-        dplyr::left_join(select(scenario_elements,-c("binary_file_id","spreadsheet_id", "id")), by=c("data"="name"), na_matches="never") %>% # for mail folders
+        dplyr::mutate(
+          name = do.call(coalesce, select(., dplyr::starts_with("name.")))
+        ) %>% # merge name variable that was split via the above join back into a single one
+        select(-dplyr::starts_with("name.")) %>% # remove old name variables due to joins
+        dplyr::left_join(select(scenario_elements,-c("binary_file_id","spreadsheet_id", "id")), by=c("data"="name"), na_matches="never", relationship = "many-to-many") %>% # for mail folders
         dplyr::left_join(select(scenario_elements,-c("binary_file_id","spreadsheet_id")), by=c("data"="id"), na_matches="never") %>% # for file directories
         dplyr::left_join(select(scenario_elements,-c("binary_file_id","spreadsheet_id")), by=c("chapterId"="id"), na_matches="never") %>% # for file directories
         dplyr::left_join(select(scenario_elements,-c("binary_file_id","spreadsheet_id")), by=c("articleId"="id"), na_matches="never") %>% # for file directories
