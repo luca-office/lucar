@@ -1,6 +1,6 @@
 Package: lucar
 Title: Prepare Survey Data from LUCA Office
-Version: 0.1.1
+Version: 0.1.3
 Authors@R: c(
     person("Steffen", "Brandt", email="steffen@opencampus.sh",
            role = c("aut", "cre"), comment = c(ORCID = "0000-0001-5410-7186")))
@@ -11,7 +11,7 @@ License: GPL (>= 3)
 URL: https://github.com/LucaOffice/lucar
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.3
 Depends: 
     R (>= 3.50)
 Imports:
