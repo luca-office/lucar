@@ -173,6 +173,7 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
                                         event_type=="UpdateTextDocumentContent" ~ content,
                                         event_type=="ErpSelectCell" ~ paste0("Table type: ", tableType, ", Column: ", columnName, ", Row index: ", rowId, ", Value: ", value),
                                         event_type=="ErpSelectTable" ~ paste0("Table name: ", tableName, ", Table type: ", tableType),
+                                        event_type=="StartScenario" ~ scenarioId,
                                         # TODO: Completing the data column for not yet considered events
                                         #event_type=="" ~ value,
                                         event_type=="UpdateEmail" ~ paste0("To: ", to, "; CC: ", cc, "; Subject: ", subject)
