@@ -112,7 +112,7 @@ prepare_lsd <- function (path = "./", aggregate_duplicate_events=FALSE, idle_tim
   # get project modules overview and the corresponding hash IDs
   project_modules <- get_project_modules(json_data)
   # get scenario elements overview and their respective event codes
-  scenario_elements <- get_scenario_elements(json_data)
+  scenario_elements <- get_scenario_elements(json_data, project_modules)
   # get questionnaire elements overview and the corresponding hash IDs
   questionnaire_elements <- get_questionnaire_elements(json_data)
   # get rater overview and the corresponding hash IDs
@@ -123,8 +123,8 @@ prepare_lsd <- function (path = "./", aggregate_duplicate_events=FALSE, idle_tim
 
   # Looping through all JSON files identified in the given path
   for (json_file in json_files){
-    cat(".")
 
+    cat(".")
     #TODO Implement Try/Catch for reading the json and checking the format
 
     # Import JSON file including the data from a single participation
@@ -172,7 +172,8 @@ prepare_lsd <- function (path = "./", aggregate_duplicate_events=FALSE, idle_tim
   project_modules <- project_modules %>%
     dplyr::select_if(debug_mode|!grepl("^id$|_id$", names(.)))
   scenario_elements <- scenario_elements %>%
-    dplyr::select_if(debug_mode|!grepl("^id$|_id$", names(.)))
+    dplyr::select_if(debug_mode|!grepl("^id$|_id$", names(.))) %>%
+    dplyr::filter(!(usage_type=="UserCreatedEmail" & relevance=="Required")) # remove redundant answer mail elements
   questionnaire_elements <- questionnaire_elements %>%
     dplyr::select_if(debug_mode|!grepl("_no$|_id$", names(.)))
   rater <- rater %>%
