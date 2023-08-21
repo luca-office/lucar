@@ -179,7 +179,7 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
                                         event_type=="UpdateEmail" ~ paste0("To: ", to, "; CC: ", cc, "; Subject: ", subject)
                                         )) %>%
 
-    # The following step is only conducted for a not empty list of scenario elements (not only questionnaires were defined)
+    # The following step is only conducted for a not empty list of scenario elements (happens when only questionnaires were administered)
     { if (length(scenario_elements)>0) {
       # match event ids with the ids of the scenario elements (if scenario element)
       dplyr::left_join(., select(scenario_elements,-c("binary_file_id","spreadsheet_id")), by="id", na_matches="never") %>%
@@ -193,7 +193,7 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
         ) %>% # merge name variable that was split via the above join back into a single one
         select(-dplyr::starts_with("name.")) %>% # remove old name variables due to joins
         dplyr::left_join(select(scenario_elements,-c("binary_file_id","spreadsheet_id", "id")), by=c("data"="name"), na_matches="never", relationship = "many-to-many") %>% # for mail folders
-        dplyr::left_join(select(scenario_elements,-c("binary_file_id","spreadsheet_id")), by=c("data"="id"), na_matches="never") %>% # for file directories
+        dplyr::left_join(select(scenario_elements,-c("binary_file_id","spreadsheet_id")), by=c("data"="id"), na_matches="never", relationship = "many-to-many") %>% # for file directories
         dplyr::left_join(select(scenario_elements,-c("binary_file_id","spreadsheet_id")), by=c("chapterId"="id"), na_matches="never") %>% # for file directories
         dplyr::left_join(select(scenario_elements,-c("binary_file_id","spreadsheet_id")), by=c("articleId"="id"), na_matches="never") %>% # for file directories
 
