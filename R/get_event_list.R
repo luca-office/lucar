@@ -236,12 +236,15 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
       event_list <- list()
       for (module_code in project_modules$code){
 
-        # Extracting the starting and ending event for the current module code
-        first_module_event <- grep(paste0("^M",module_code,"STR_SCN$|^M",module_code,"STR_QST$"), full_event_list$code)
+        # Extracting the starting event for the current module code (if there were multiple `tries` to start the module, the first one is taken)
+        first_module_event <- grep(paste0("^M",module_code,"STR_SCN$|^M",module_code,"STR_QST$"), full_event_list$code)[0]
 
-        # Making sure that the module was started - otherwise return NULL for this modules event list
+        # Making sure that the module was started - otherwise return directly NULL for this modules event list
         if (length(first_module_event)!=0) {
-          last_module_event <- grep(paste0("^M",module_code,"END_SCN$|^M",module_code,"END_QST$"), full_event_list$code)
+
+          # Extracting the ending event for the current module code (if there were multiple `tries` to end the module the one corresponding to the last try to start the module is taken)
+          last_module_event <- grep(paste0("^M",module_code,"END_SCN$|^M",module_code,"END_QST$"), full_event_list$code)[length(first_module_event)]
+
           # Checking if the participation was interrupted before the regular end and therefore no ending event is found
           last_module_event <- ifelse (length(last_module_event)==0, length(full_event_list$code), last_module_event)
 

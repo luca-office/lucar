@@ -63,38 +63,38 @@ get_questionnaire_elements <- function (json_data) {
     # remove not needed rows for free text questions in Runtime Surveys
     dplyr::filter(is.na(questions_answers_id) | questions_answers_id == "" | questions_answers_id == "text") %>%
     {
+
       # Check if all elements in questions_freetextQuestionCodingCriteria are NULL
       all_null <-
         all(sapply(.$questions_freetextQuestionCodingCriteria, is.null))
       if (!all_null) {
-        tidyr::unnest_longer(., questions_freetextQuestionCodingCriteria) %>%
+        tidyr::unnest_longer(., questions_freetextQuestionCodingCriteria, keep_empty = TRUE) %>%
           tidyr::unnest_wider(questions_freetextQuestionCodingCriteria, names_sep =
-                                "_") %>%
+                                "__") %>%
           # merge answer category ids and descriptions for closed and open responses
           mutate(
             answer_category_id = dplyr::coalesce(
               questions_answers__id,
-              questions_freetextQuestionCodingCriteria_id
+              questions_freetextQuestionCodingCriteria_id,
+              questions_freetextQuestionCodingCriteria__id,
             )
           ) %>%
           mutate(
             answer_category_description = dplyr::coalesce(
               questions_answers__text,
               questions_freetextQuestionCodingCriteria_description,
-              questions_answers__1
             )
           )
       } else {
         # create empty dummy variables
         mutate(., answer_category_id = NA) %>%
           mutate(answer_category_description = NA) %>%
-          mutate(questions_freetextQuestionCodingCriteria_score =
+          mutate(questions_freetextQuestionCodingCriteria__score =
                    NA) %>%
           mutate(maxDurationInSeconds = NA)
       }
     } %>%
     # Order (questions and) and answers according to their position in the questionnaire
-    # TODO: replace question_no by questions_position as soon as variable available
     plyr::arrange(questionnaire_no,
                   questions_position,
                   questions_answers__position) %>%
@@ -102,16 +102,16 @@ get_questionnaire_elements <- function (json_data) {
     dplyr::group_by(questions_id) %>%
     dplyr::mutate(answer_no = stringr::str_pad(dplyr::row_number(), 2, pad = "0")) %>%
     # add complete codes
-    mutate(answer_code = paste0("Q", questionnaire_no, "Q", question_no, "A", answer_no)) %>%
+    mutate(answer_code = paste0("Q", questionnaire_no, "Q", questions_position, "A", answer_no)) %>%
     # select and name final set of variables
-    dplyr::select(questionnaire_no, question_no, answer_no, answer_code,
+    dplyr::select(questionnaire_no, question_no, questions_position, answer_no, answer_code,
                   questionnaire_id=id, questionnaire_title=title, questionnaire_description=description,
                   questionnaire_type=questionnaireType, questionnaire_maxDurationInSeconds=maxDurationInSeconds,
                   question_id=questions_id, question_text=questions_text, question_type=questions_questionType,
                   question_isAdditionalFreeTextAnswerEnabled=questions_isAdditionalFreeTextAnswerEnabled,
                   answer_category_id, answer_category_description,
                   answer_closed_category_isCorrect=questions_answers__isCorrect, answer_position=questions_answers__position,
-                  answer_freeText_category_score=questions_freetextQuestionCodingCriteria_score) %>%
+                  answer_freeText_category_score=questions_freetextQuestionCodingCriteria__score) %>%
     dplyr::ungroup()
 
   return(questionnaire_elements)
