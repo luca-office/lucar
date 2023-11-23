@@ -167,18 +167,19 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
                                         event_type=="OpenPdfBinary" | event_type=="SelectPdfBinary" | event_type=="SelectImageBinary" | event_type=="OpenImageBinary" | event_type=="OpenVideoBinary" | event_type=="SelectVideoBinary" ~ binaryFileTitle,
                                         event_type=="SendParticipantChatMessage" | event_type=="ReceiveSupervisorChatMessage" ~ message,
                                         event_type=="PasteFromClipboard" | event_type=="CopyToClipboard" ~ content,
-                                        event_type=="SelectQuestionnaireAnswer" | event_type=="UpdateQuestionnaireFreeTextAnswer" ~ value,
+                                        event_type=="SelectQuestionnaireAnswer" | event_type=="UpdateQuestionnaireFreeTextAnswer" ~ as.character(value),
                                         event_type=="EvaluateIntervention" ~ paste0("Occurred: ", occurred, ", Intervention ID: ", interventionId),
                                         event_type=="OpenTextDocument" ~ textDocumentTitle,
                                         event_type=="UpdateTextDocumentContent" ~ content,
                                         event_type=="ErpSelectCell" ~ paste0("Table type: ", tableType, ", Column: ", columnName, ", Row index: ", rowId, ", Value: ", value),
                                         event_type=="ErpSelectTable" ~ paste0("Table name: ", tableName, ", Table type: ", tableType),
+                                        event_type=="StartScenario" ~ scenarioId,
                                         # TODO: Completing the data column for not yet considered events
                                         #event_type=="" ~ value,
                                         event_type=="UpdateEmail" ~ paste0("To: ", to, "; CC: ", cc, "; Subject: ", subject)
                                         )) %>%
 
-    # The following step is only conducted for a not empty list of scenario elements (not only questionnaires were defined)
+    # The following step is only conducted for a not empty list of scenario elements (happens when only questionnaires were administered)
     { if (length(scenario_elements)>0) {
       # match event ids with the ids of the scenario elements (if scenario element)
       dplyr::left_join(., select(scenario_elements,-c("binary_file_id","spreadsheet_id")), by="id", na_matches="never") %>%
@@ -192,7 +193,7 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
         ) %>% # merge name variable that was split via the above join back into a single one
         select(-dplyr::starts_with("name.")) %>% # remove old name variables due to joins
         dplyr::left_join(select(scenario_elements,-c("binary_file_id","spreadsheet_id", "id")), by=c("data"="name"), na_matches="never", relationship = "many-to-many") %>% # for mail folders
-        dplyr::left_join(select(scenario_elements,-c("binary_file_id","spreadsheet_id")), by=c("data"="id"), na_matches="never") %>% # for file directories
+        dplyr::left_join(select(scenario_elements,-c("binary_file_id","spreadsheet_id")), by=c("data"="id"), na_matches="never", relationship = "many-to-many") %>% # for file directories
         dplyr::left_join(select(scenario_elements,-c("binary_file_id","spreadsheet_id")), by=c("chapterId"="id"), na_matches="never") %>% # for file directories
         dplyr::left_join(select(scenario_elements,-c("binary_file_id","spreadsheet_id")), by=c("articleId"="id"), na_matches="never") %>% # for file directories
 
@@ -235,12 +236,15 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
       event_list <- list()
       for (module_code in project_modules$code){
 
-        # Extracting the starting and ending event for the current module code
-        first_module_event <- grep(paste0("^M",module_code,"STR_SCN$|^M",module_code,"STR_QST$"), full_event_list$code)
+        # Extracting the starting event for the current module code (if there were multiple `tries` to start the module, the first one is taken)
+        first_module_event <- grep(paste0("^M",module_code,"STR_SCN$|^M",module_code,"STR_QST$"), full_event_list$code)[0]
 
-        # Making sure that the module was started - otherwise return NULL for this modules event list
+        # Making sure that the module was started - otherwise return directly NULL for this modules event list
         if (length(first_module_event)!=0) {
-          last_module_event <- grep(paste0("^M",module_code,"END_SCN$|^M",module_code,"END_QST$"), full_event_list$code)
+
+          # Extracting the ending event for the current module code (if there were multiple `tries` to end the module the one corresponding to the last try to start the module is taken)
+          last_module_event <- grep(paste0("^M",module_code,"END_SCN$|^M",module_code,"END_QST$"), full_event_list$code)[length(first_module_event)]
+
           # Checking if the participation was interrupted before the regular end and therefore no ending event is found
           last_module_event <- ifelse (length(last_module_event)==0, length(full_event_list$code), last_module_event)
 

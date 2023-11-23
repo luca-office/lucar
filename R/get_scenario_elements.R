@@ -4,6 +4,7 @@
 #' These might be emails, excel sheets, pdf, and other elements.
 #'
 #' @param json_data Nested list including the log data for a single participation
+#' @param project_modules Table of project elements, their ids and other info
 #'
 #' @return A dataframe including all elements existing in the scenarios of a project, their event codes and other relevant information
 #'
@@ -22,22 +23,46 @@
 #' @importFrom dplyr left_join
 #' @importFrom dplyr case_when
 #' @importFrom tibble add_row
+#' @importFrom dplyr bind_rows
 #' @export
-get_scenario_elements <- function (json_data) {
+get_scenario_elements <- function (json_data, project_modules) {
 
   # tibble with info on the project emails that are categorized according to their relevance
-  emails <- json_data$emails %>%
-    {
-      if (length(.)==0) {
-        dplyr::tibble()
-      } else {
-        lapply(., function(x) x[names(x)!="ccRecipients"]) %>% # removing ccRecipients since it has different types depending on its content
-        purrr::map_depth(2, ~ replace(.x, is.null(.x), NA)) %>% # replacing NULL elements by NA
-        dplyr::bind_rows() %>%   # format list as dataframe
-        dplyr::mutate(binary_file_id=NA, spreadsheet_id=NA, sample_company_id=NA, name=subject, usage_type="Email", relevance, doc_type="mail") %>% # renaming variables according to the general format
-        dplyr::select(id, binary_file_id, spreadsheet_id, sample_company_id, name, usage_type, relevance, doc_type)  # select only relevant variables
-      }
-    }
+  emails <- if(length(json_data$emails) == 0) {
+    dplyr::tibble()
+  } else {
+    json_data$emails %>%
+      lapply(function(x) x[names(x) != "ccRecipients"]) %>% # removing ccRecipients since it has different types depending on its content
+      purrr::map_depth(2, ~ replace(.x, is.null(.x), NA)) %>% # replacing NULL elements by NA
+      dplyr::bind_rows() %>%   # format list as dataframe
+      dplyr::mutate(
+        binary_file_id = NA,
+        spreadsheet_id = NA,
+        sample_company_id = NA,
+        scenario_id = NA,
+        name = subject,
+        usage_type = "Email",
+        relevance = relevance,
+        doc_type = "mail"
+      ) %>%
+      dplyr::select(id, binary_file_id, spreadsheet_id, sample_company_id, scenario_id, name, usage_type, relevance, doc_type)  # select only relevant variables
+  }
+
+
+  for (scenario in json_data$scenarios) {
+    # add special type for introductory emails and add scenario_id
+    emails$usage_type[emails$id==scenario$introductionEmailId] <- paste0("IntroductionEmail_Module",
+                                                                         project_modules$code[project_modules$module_id==scenario$id])
+    emails$scenario_id[emails$id==scenario$introductionEmailId] <- scenario$id
+    # special row for the completion email address of a scenario
+    emails <- emails %>%
+      tibble::add_row(scenario_id = scenario$id,
+                      name = scenario$completionEmailAddress[],
+                      usage_type = paste0("CompletionEmail_Module", project_modules$code[project_modules$module_id==scenario$id]),
+                      relevance = "Required",
+                      doc_type = "mail" )
+  }
+
 
   # get sample company to include the corresponding titles in the companies file archive
   sample_companies <- get_sample_companies(json_data) %>%
@@ -122,23 +147,23 @@ get_scenario_elements <- function (json_data) {
 
 
   # combining the elements in a single table
-  scenario_elements <- rbind(emails, directories, files, binary_files, book_chapters, book_articles) %>%
-    {
-      if (length(.)>0) {
-        # Remove duplicates included in 'files' and 'binary_files' (elements from 'files' will be kept)
-        dplyr::filter(., !duplicated(binary_file_id, incomparables = NA)) %>%
-        # setting the running workflow codes for each project element
-        dplyr::mutate(element_code=construct_element_code(relevance), .before = 1)
-      } else {
-        dplyr::tibble()
-      }
-    }
+  raw_scenario_elements <- dplyr::bind_rows(emails, directories, files, binary_files, book_chapters, book_articles)
 
-  return(scenario_elements)
+  if (length(raw_scenario_elements)==0){
+    return (dplyr::tibble())
+  } else {
+    scenario_elements <- raw_scenario_elements %>%
+      # Remove duplicates included in 'files' and 'binary_files' (elements from 'files' will be kept)
+      dplyr::filter(!duplicated(binary_file_id, incomparables = NA)) %>%
+      # setting the running workflow codes for each project element
+      dplyr::mutate(element_code = dplyr::if_else(is.na(relevance), NA, construct_element_code(relevance)), .before = 1)
+      # remove element codes
+    return(scenario_elements)
+  }
 }
 globalVariables(c("subject", "relevance", "id", "binary_file_id", "spreadsheet_id",
-                  "name", "doc_type", "binaryFileId", "spreadsheetId", "usageType",
-                  "sample_company_id", "filename"))
+                  "scenario_id", "name", "doc_type", "binaryFileId", "spreadsheetId",
+                  "usageType", "sample_company_id", "filename"))
 
 
 #' Helper function to assign the running event code for elements of the same type

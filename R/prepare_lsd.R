@@ -103,7 +103,7 @@ prepare_lsd <- function (path = "./", aggregate_duplicate_events=FALSE, idle_tim
 
   # Initialization of objects for the result object
   participation_data <- dplyr::tibble(project=character())
-  event_list <- list()
+  event_lists <- list()
   unknown_events <- dplyr::tibble()
 
 
@@ -112,7 +112,7 @@ prepare_lsd <- function (path = "./", aggregate_duplicate_events=FALSE, idle_tim
   # get project modules overview and the corresponding hash IDs
   project_modules <- get_project_modules(json_data)
   # get scenario elements overview and their respective event codes
-  scenario_elements <- get_scenario_elements(json_data)
+  scenario_elements <- get_scenario_elements(json_data, project_modules)
   # get questionnaire elements overview and the corresponding hash IDs
   questionnaire_elements <- get_questionnaire_elements(json_data)
   # get rater overview and the corresponding hash IDs
@@ -123,8 +123,8 @@ prepare_lsd <- function (path = "./", aggregate_duplicate_events=FALSE, idle_tim
 
   # Looping through all JSON files identified in the given path
   for (json_file in json_files){
-    cat(".")
 
+    cat(".")
     #TODO Implement Try/Catch for reading the json and checking the format
 
     # Import JSON file including the data from a single participation
@@ -135,17 +135,17 @@ prepare_lsd <- function (path = "./", aggregate_duplicate_events=FALSE, idle_tim
 
 
     # add new list element with the event data, naming it with the ID of the participation
-    element_name <- sub('\\..*$', '', basename(json_file))
-    event_list[[element_name]] <- get_event_list(json_data, project_modules, scenario_elements, questionnaire_elements,
+    #element_name <- sub('\\..*$', '', basename(json_file))
+    event_lists <- get_event_list(json_data, project_modules, scenario_elements, questionnaire_elements,
                                                  aggregate_duplicate_events=aggregate_duplicate_events,
                                                  idle_time=idle_time, event_codes, tool_codes, debug_mode=debug_mode)
     # Assigned mail recipient codes are stored in an extra variable and removed from the participant's event list
-    scenario_elements <- event_list[[element_name]]$scenario_elements
-    event_list[[element_name]]$scenario_elements <- NULL
+    scenario_elements <- event_lists$scenario_elements
+    event_lists$scenario_elements <- NULL
 
 
     # get tibble row including summarized logdata information for the current participant
-    new_participation_data <- get_logdata_summary(json_data, event_list[[element_name]], debug_mode)
+    new_participation_data <- get_logdata_summary(json_data, event_lists, scenario_elements, debug_mode)
     # add tibble row including the questionnaire scores if they exist
     questionnaire_data <- get_questionnaire_data(json_data, project_modules, scenario_elements,
                                                  questionnaire_elements, rater, debug_mode=debug_mode)
@@ -160,8 +160,8 @@ prepare_lsd <- function (path = "./", aggregate_duplicate_events=FALSE, idle_tim
 
     # in debugging mode: collect incomplete event_codes, e.g. due to unknown events or unmatched id's
     if (debug_mode) {
-      incomplete_codes <- nchar(event_list[[element_name]]$event_code)!=10
-      unknown_events <- rbind(unknown_events, event_list[[element_name]][incomplete_codes,])
+      incomplete_codes <- nchar(event_lists$event_code)!=10
+      unknown_events <- rbind(unknown_events, event_lists[incomplete_codes,])
       unknown_events <- unknown_events[!duplicated(unknown_events$event_type),]
     }
   }
@@ -172,7 +172,8 @@ prepare_lsd <- function (path = "./", aggregate_duplicate_events=FALSE, idle_tim
   project_modules <- project_modules %>%
     dplyr::select_if(debug_mode|!grepl("^id$|_id$", names(.)))
   scenario_elements <- scenario_elements %>%
-    dplyr::select_if(debug_mode|!grepl("^id$|_id$", names(.)))
+    dplyr::select_if(debug_mode|!grepl("^id$|_id$", names(.))) %>%
+    dplyr::filter(!(usage_type=="UserCreatedEmail" & relevance=="Required")) # remove redundant answer mail elements
   questionnaire_elements <- questionnaire_elements %>%
     dplyr::select_if(debug_mode|!grepl("_no$|_id$", names(.)))
   rater <- rater %>%

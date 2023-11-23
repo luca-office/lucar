@@ -4,10 +4,12 @@
 \alias{get_scenario_elements}
 \title{Getting the scenario elements from a project}
 \usage{
-get_scenario_elements(json_data)
+get_scenario_elements(json_data, project_modules)
 }
 \arguments{
 \item{json_data}{Nested list including the log data for a single participation}
+
+\item{project_modules}{Table of project elements, their ids and other info}
 }
 \value{
 A dataframe including all elements existing in the scenarios of a project, their event codes and other relevant information
