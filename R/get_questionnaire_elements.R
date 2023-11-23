@@ -30,84 +30,98 @@ get_questionnaire_elements <- function (json_data) {
                                  rowId=NA_character_, tableName=NA_character_, scenarioId=NA_character_, questionnaireId=NA_character_,
                                  binaryFileId=NA_character_, fileId=NA_character_, emailId=NA_character_,
                                  questions_freetextQuestionCodingCriteria_id=NA_character_, questions_freetextQuestionCodingCriteria_description=NA_character_,
-                                 questions_freetextQuestionCodingCriteria_score=NA_character_, maxDurationInSeconds=NA_character_)
+                                 questions_freetextQuestionCodingCriteria_score=NA_character_, maxDurationInSeconds=NA_character_,
+                                 questions_freeTextAnswer=NA_character_, questions_answers_id=NA_character_)
 
 
-  questionnaire_elements <- json_data$questionnaires %>%
-    append(json_data$runtimeSurveys) %>%
+  questionnaire_data <- json_data$questionnaires %>%
+    append(json_data$runtimeSurveys)
+
+  # return empty tibble if no questionnaire data exists
+  if (length(questionnaire_data) == 0) {
+    return (dplyr::tibble())
+  }
+
+  # otherwise prepare tibble with questionnaire elements
+  questionnaire_elements <- questionnaire_data %>%
+
+    # unlist questions in all questionnaires into rows
+    dplyr::bind_rows(.) %>%
+    # Unnest all questions
+    tidyr::unnest_wider(questions, names_sep = "_") %>%
+    # add running id for questionnaires and questions within questionnaires
+    dplyr::group_by(id) %>%
+    dplyr::mutate(questionnaire_no = stringr::str_pad(dplyr::cur_group_id(), 2, pad = "0")) %>%
+    dplyr::mutate(question_no = stringr::str_pad(dplyr::row_number(), 2, pad = "0")) %>%
+    # merge answer fields
+    dplyr::mutate(questions_answers = coalesce(questions_answers, questions_freeTextAnswer)) %>%
+    # Unnest answers
+    tidyr::unnest_longer(questions_answers) %>%
+    tidyr::unnest_wider(questions_answers, names_sep = "__") %>%
+    # add dummy variables for questionnaire data that was not generated for this participant
+    tibble::add_column(!!!needed_variables[!names(needed_variables) %in% names(.)]) %>%
+    # remove not needed rows for free text questions in Runtime Surveys
+    dplyr::filter(is.na(questions_answers_id) | questions_answers_id == "" | questions_answers_id == "text") %>%
     {
-      if (length(.)==0) {
-        dplyr::tibble()
+      # Check if all elements in questions_freetextQuestionCodingCriteria are NULL
+      all_null <-
+        all(sapply(.$questions_freetextQuestionCodingCriteria, is.null))
+      if (!all_null) {
+        tidyr::unnest_longer(., questions_freetextQuestionCodingCriteria) %>%
+          tidyr::unnest_wider(questions_freetextQuestionCodingCriteria, names_sep =
+                                "_") %>%
+          # merge answer category ids and descriptions for closed and open responses
+          mutate(
+            answer_category_id = dplyr::coalesce(
+              questions_answers__id,
+              questions_freetextQuestionCodingCriteria_id
+            )
+          ) %>%
+          mutate(
+            answer_category_description = dplyr::coalesce(
+              questions_answers__text,
+              questions_freetextQuestionCodingCriteria_description,
+              questions_answers__1
+            )
+          )
       } else {
-
-        # unlist questions in all questionnaires into rows
-        dplyr::bind_rows(.) %>%
-
-          # Unnest all questions
-          tidyr::unnest_wider(questions, names_sep="_") %>%
-
-          # add running id for questionnaires and questions within questionnaires
-          dplyr::group_by(id) %>%
-          dplyr::mutate(questionnaire_no=stringr::str_pad(dplyr::cur_group_id(), 2, pad = "0")) %>%
-          dplyr::mutate(question_no=stringr::str_pad(dplyr::row_number(), 2, pad = "0")) %>%
-
-          # Unnest answers
-          tidyr::unnest_longer(questions_answers) %>%
-          tidyr::unnest_wider(questions_answers, names_sep="_") %>%
-
-          # add dummy variables for questionnaire data that was not generated for this participant
-          tibble::add_column(!!!needed_variables[!names(needed_variables) %in% names(.)]) %>%
-
-          {
-            # Check if all elements in questions_freetextQuestionCodingCriteria are NULL
-            all_null <- all(sapply(.$questions_freetextQuestionCodingCriteria, is.null))
-
-            if (!all_null) {
-              tidyr::unnest_longer(., questions_freetextQuestionCodingCriteria) %>%
-                tidyr::unnest_wider(questions_freetextQuestionCodingCriteria, names_sep="_") %>%
-
-                # merge answer category ids and descriptions for closed and open responses
-                mutate(answer_category_id=dplyr::coalesce(questions_answers_id, questions_freetextQuestionCodingCriteria_id)) %>%
-                mutate(answer_category_description=dplyr::coalesce(questions_answers_text, questions_freetextQuestionCodingCriteria_description))
-            } else {
-              # create empty dummy variables
-              mutate(., answer_category_id=NA) %>%
-                mutate(answer_category_description=NA) %>%
-                mutate(questions_freetextQuestionCodingCriteria_score=NA) %>%
-                mutate(maxDurationInSeconds=NA)
-            }
-          } %>%
-
-          # Order (questions and) and answers according to their position in the questionnaire
-          # TODO: replace question_no by questions_position as soon as variable available
-          plyr::arrange(questionnaire_no, questions_position, questions_answers_position) %>%
-
-          # add running id for answers
-          dplyr::group_by(questions_id) %>%
-          dplyr::mutate(answer_no=stringr::str_pad(dplyr::row_number(), 2, pad = "0")) %>%
-
-          # add complete codes
-          mutate(answer_code=paste0("Q", questionnaire_no, "Q", question_no, "A", answer_no)) %>%
-
-          # select and name final set of variables
-          dplyr::select(questionnaire_no, question_no, answer_no, answer_code,
-                        questionnaire_id=id, questionnaire_title=title, questionnaire_description=description,
-                        questionnaire_type=questionnaireType, questionnaire_maxDurationInSeconds=maxDurationInSeconds,
-                        question_id=questions_id, question_text=questions_text, question_type=questions_questionType,
-                        question_isAdditionalFreeTextAnswerEnabled=questions_isAdditionalFreeTextAnswerEnabled,
-                        answer_category_id, answer_category_description,
-                        answer_closed_category_isCorrect=questions_answers_isCorrect, answer_position=questions_answers_position,
-                        answer_freeText_category_score=questions_freetextQuestionCodingCriteria_score) %>%
-          dplyr::ungroup()
+        # create empty dummy variables
+        mutate(., answer_category_id = NA) %>%
+          mutate(answer_category_description = NA) %>%
+          mutate(questions_freetextQuestionCodingCriteria_score =
+                   NA) %>%
+          mutate(maxDurationInSeconds = NA)
       }
-    }
+    } %>%
+    # Order (questions and) and answers according to their position in the questionnaire
+    # TODO: replace question_no by questions_position as soon as variable available
+    plyr::arrange(questionnaire_no,
+                  questions_position,
+                  questions_answers__position) %>%
+    # add running id for answers
+    dplyr::group_by(questions_id) %>%
+    dplyr::mutate(answer_no = stringr::str_pad(dplyr::row_number(), 2, pad = "0")) %>%
+    # add complete codes
+    mutate(answer_code = paste0("Q", questionnaire_no, "Q", question_no, "A", answer_no)) %>%
+    # select and name final set of variables
+    dplyr::select(questionnaire_no, question_no, answer_no, answer_code,
+                  questionnaire_id=id, questionnaire_title=title, questionnaire_description=description,
+                  questionnaire_type=questionnaireType, questionnaire_maxDurationInSeconds=maxDurationInSeconds,
+                  question_id=questions_id, question_text=questions_text, question_type=questions_questionType,
+                  question_isAdditionalFreeTextAnswerEnabled=questions_isAdditionalFreeTextAnswerEnabled,
+                  answer_category_id, answer_category_description,
+                  answer_closed_category_isCorrect=questions_answers__isCorrect, answer_position=questions_answers__position,
+                  answer_freeText_category_score=questions_freetextQuestionCodingCriteria_score) %>%
+    dplyr::ungroup()
 
   return(questionnaire_elements)
 }
 
 globalVariables(c("questions", "id", "questions_answers", "questions_freetextQuestionCodingCriteria",
-                  "questionnaire_no", "question_no", "questions_answers_position", "questions_id",
-                  "answer_no", "questions_answers_id", "questions_freetextQuestionCodingCriteria_id",
+                  "questionnaire_no", "question_no", "questions_answers_id", "questions_answers_position",
+                  "questions_id", "answer_no", "questions_answers__id", "questions_answers__text",
+                  "questions_answers__1", "questions_answers__position", "questions_answers__isCorrect",
+                  "questions_freeTextAnswer", "questions_freetextQuestionCodingCriteria_id",
                   "questions_answers_text", "questions_freetextQuestionCodingCriteria_description",
                   "answer_code", "title", "description", "questionnaireType", "maxDurationInSeconds",
                   "questions_text", "questions_questionType",
