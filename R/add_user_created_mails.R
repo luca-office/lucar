@@ -38,18 +38,19 @@ add_user_created_mails <- function (scenario_elements, participant_events) {
       dplyr::distinct(., id, .keep_all=TRUE) %>% # keep only one row for emails with equal ids
       dplyr::filter(to!="") %>% # remove all rows with empty `to` column
       dplyr::select(id, name=to) %>% # reduce to the two relevant columns
-      dplyr::mutate(usage_type="UserCreatedEmail", doc_type="mail", # complete colums for UserCreatedEmail
-                    relevance=NA,
-                    element_code=NA) %>%
+      dplyr::mutate(usage_type="UserCreatedEmail", doc_type="mail", # complete columns for UserCreatedEmail
+                    relevance=NA_character_,
+                    element_code=NA_character_) %>%
       left_join(completion_email_elements %>% select(name, completion_code = element_code), by = "name") %>%
       mutate(element_code = ifelse(usage_type == "UserCreatedEmail" & is.na(element_code), completion_code, element_code)) %>%
+      mutate(element_code = as.character(element_code)) %>%
       select(-completion_code) %>%
       dplyr::full_join(scenario_elements, by=c("element_code", "id", "name", "usage_type", "relevance", "doc_type")) %>% # join the currently given scenario elements
       mutate(relevance = ifelse(is.na(relevance) & !is.na(element_code), "Required", relevance)) %>% # all new mail elements that already have an element code from a completion mail address are required
       mutate(relevance = ifelse(is.na(relevance) & is.na(element_code), "Irrelevant", relevance)) %>% # all new mail elements that are not completion mails are irrelevant
       mutate(element_code = ifelse(is.na(element_code),
-                                    stringr::str_pad(cumsum(is.na(element_code)) + last_code, 4, pad = "0"),
-                                    element_code))
+                                   stringr::str_pad(cumsum(is.na(element_code)) + last_code, 4, pad = "0"),
+                                   element_code))
   }
 
   return(completed_scenario_elements)
