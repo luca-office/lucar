@@ -62,9 +62,18 @@ get_questionnaire_data <- function (json_data, project_modules, scenario_element
         # remove variable with old column name
         dplyr::select(-col_name)
 
-
-      qst_data <- dplyr::full_join(qst_data, answer_data, by=intersect(names(qst_data), names(answer_data)))
-
+      # check if qst_data is empty
+      if (nrow(qst_data) == 0) {
+        qst_data <- answer_data
+      }
+      # check if intersect(names(qst_data), names(answer_data)) is empty
+      else if (length(intersect(names(qst_data), names(answer_data))) == 0) {
+        qst_data <- cbind(qst_data, answer_data)
+      }
+      # join answer data to existing qst_data
+      else {
+        qst_data <- dplyr::full_join(qst_data, answer_data, by=intersect(names(qst_data), names(answer_data)))
+      }
     }
   }
 
