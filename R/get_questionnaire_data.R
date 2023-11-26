@@ -9,6 +9,7 @@
 #' @param questionnaire_elements Dataframe including the codes for all questionnaire elements, which are used in the event list as well as in the summary results.
 #' @param rater Dataframe including the running numbers and ids for the rater in the project
 #' @param debug_mode If TRUE the internal hash IDs for the project elements are included and no module specific data is returned.
+#' @param full_rater_data If FALSE only the final score will be included for the questionnaire data. If TRUE all scores from all raters will be included.
 #'
 #' @return A dataframe (consisting of one row) including general information for a single participation
 #'
@@ -21,7 +22,7 @@
 #' }
 #'
 #' @importFrom dplyr tibble
-get_questionnaire_data <- function (json_data, project_modules, scenario_elements, questionnaire_elements, rater, debug_mode=FALSE){
+get_questionnaire_data <- function (json_data, project_modules, scenario_elements, questionnaire_elements, rater, debug_mode=FALSE, full_rater_data=FALSE){
 
   # initialization of result object
   qst_data <- dplyr::tibble()
@@ -40,6 +41,8 @@ get_questionnaire_data <- function (json_data, project_modules, scenario_element
       if (rating$isFinalScore) {
         rater_description <- paste0(rater_description, "_final")
       }
+
+      if (rating$isFinalScore | full_rater_data==TRUE) {
 
       # preparation of the scores from the current rater
       answer_data <-
@@ -74,8 +77,11 @@ get_questionnaire_data <- function (json_data, project_modules, scenario_element
       else {
         qst_data <- dplyr::full_join(qst_data, answer_data, by=intersect(names(qst_data), names(answer_data)))
       }
+      }
     }
   }
+  # sort variables in questionnaire data according to their name
+  qst_data <- qst_data[,order(names(qst_data))]
 
   return(qst_data)
 

@@ -10,7 +10,8 @@ get_questionnaire_data(
   scenario_elements,
   questionnaire_elements,
   rater,
-  debug_mode = FALSE
+  debug_mode = FALSE,
+  full_rater_data = FALSE
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ get_questionnaire_data(
 \item{rater}{Dataframe including the running numbers and ids for the rater in the project}
 
 \item{debug_mode}{If TRUE the internal hash IDs for the project elements are included and no module specific data is returned.}
+
+\item{full_rater_data}{If FALSE only the final score will be included for the questionnaire data. If TRUE all scores from all raters will be included.}
 }
 \value{
 A dataframe (consisting of one row) including general information for a single participation

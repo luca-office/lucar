@@ -37,7 +37,8 @@
 #'   modules but only a single event list for the complete project, and an
 #'   additional table including possibly unrecognized events (missing in the
 #'   `event_codes` or `tool_codes`) is returned.
-#'
+#' @param full_rater_data If FALSE only the final score will be included for
+#'   the questionnaire data. If TRUE all scores from all raters will be included.
 #' @return List including different tables (tibbles) with participation data
 #'   and documentation on the administered project.
 #'
@@ -48,12 +49,11 @@
 #' survey_data <- prepare_lsd()
 #' }
 #'
-#' @importFrom rjson fromJSON
-#' @importFrom dplyr tibble
 #' @export
 prepare_lsd <- function (path = "./", aggregate_duplicate_events=FALSE, idle_time=10,
                          unzip = TRUE, event_codes=lucar::event_codes,
-                         tool_codes=lucar::tool_codes, debug_mode=FALSE) {
+                         tool_codes=lucar::tool_codes, debug_mode=FALSE,
+                         full_rater_data=FALSE) {
 
   cat("\n")
 
@@ -146,9 +146,21 @@ prepare_lsd <- function (path = "./", aggregate_duplicate_events=FALSE, idle_tim
 
     # get tibble row including summarized logdata information for the current participant
     new_participation_data <- get_logdata_summary(json_data, event_lists, scenario_elements, debug_mode)
+
+    # Make sure that a potentially existing new rater from this participation is added to the existing list
+    new_rater <- get_rater(rjson::fromJSON(file=file.path(json_file))) %>%
+      select(-"rater_no") %>%
+      dplyr::full_join(rater, by=c("rater_id", "email", "first_name", "last_name", "ratings_rater_organization")) %>%
+      arrange(rater_no) %>%
+      mutate(rater_no = case_when(
+        !is.na(rater_no) ~ rater_no,  # Keep original value if not NA
+        is.na(rater_no) ~ as.character(max(as.integer(rater_no), na.rm = TRUE) + 1)  # Increment max by 1 if NA
+      )) %>%
+      mutate(rater_no = stringr::str_pad(rater_no, width=2, side="left", pad="0"))
+    rater <- new_rater
     # add tibble row including the questionnaire scores if they exist
     questionnaire_data <- get_questionnaire_data(json_data, project_modules, scenario_elements,
-                                                 questionnaire_elements, rater, debug_mode=debug_mode)
+                                                 questionnaire_elements, rater, debug_mode=debug_mode, full_rater_data)
     if (nrow(questionnaire_data)>0){
       new_participation_data <- cbind(new_participation_data, questionnaire_data)
     }

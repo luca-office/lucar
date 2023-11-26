@@ -11,7 +11,8 @@ prepare_lsd(
   unzip = TRUE,
   event_codes = lucar::event_codes,
   tool_codes = lucar::tool_codes,
-  debug_mode = FALSE
+  debug_mode = FALSE,
+  full_rater_data = FALSE
 )
 }
 \arguments{
@@ -47,6 +48,9 @@ Further, the event list is not separated according to the different
 modules but only a single event list for the complete project, and an
 additional table including possibly unrecognized events (missing in the
 \code{event_codes} or \code{tool_codes}) is returned.}
+
+\item{full_rater_data}{If FALSE only the final score will be included for
+the questionnaire data. If TRUE all scores from all raters will be included.}
 }
 \value{
 List including different tables (tibbles) with participation data
