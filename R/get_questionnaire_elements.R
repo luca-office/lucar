@@ -131,4 +131,5 @@ globalVariables(c("questions", "id", "questions_answers", "questions_freetextQue
                   "questions_isAdditionalFreeTextAnswerEnabled", "answer_category_id",
                   "answer_category_description", "questions_answers_isCorrect",
                   "questions_freetextQuestionCodingCriteria_score", "questions_position",
-                  "questions_freetextQuestionCodingCriteria__id", "questions_freetextQuestionCodingCriteria__score"))
+                  "questions_freetextQuestionCodingCriteria__id", "questions_freetextQuestionCodingCriteria__score",
+                  "question_position_no"))
