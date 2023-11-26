@@ -72,14 +72,14 @@ get_questionnaire_elements <- function (json_data) {
           tidyr::unnest_wider(questions_freetextQuestionCodingCriteria, names_sep =
                                 "__") %>%
           # merge answer category ids and descriptions for closed and open responses
-          mutate(
+          dplyr::mutate(
             answer_category_id = dplyr::coalesce(
               questions_answers__id,
               questions_freetextQuestionCodingCriteria_id,
               questions_freetextQuestionCodingCriteria__id,
             )
           ) %>%
-          mutate(
+          dplyr::mutate(
             answer_category_description = dplyr::coalesce(
               questions_answers__text,
               questions_freetextQuestionCodingCriteria_description,
@@ -87,7 +87,7 @@ get_questionnaire_elements <- function (json_data) {
           )
       } else {
         # create empty dummy variables
-        mutate(., answer_category_id = NA) %>%
+        dplyr::mutate(., answer_category_id = NA) %>%
           mutate(answer_category_description = NA) %>%
           mutate(questions_freetextQuestionCodingCriteria__score =
                    NA) %>%
@@ -98,13 +98,16 @@ get_questionnaire_elements <- function (json_data) {
     plyr::arrange(questionnaire_no,
                   questions_position,
                   questions_answers__position) %>%
+    # add running id for questions according to their position in the questionnaire
+    dplyr::group_by(id) %>%
+    dplyr::mutate(question_position_no = stringr::str_pad(dplyr::dense_rank(questions_position), 2, pad = "0")) %>%
     # add running id for answers
     dplyr::group_by(questions_id) %>%
     dplyr::mutate(answer_no = stringr::str_pad(dplyr::row_number(), 2, pad = "0")) %>%
     # add complete codes
-    mutate(answer_code = paste0("Q", questionnaire_no, "Q", questions_position, "A", answer_no)) %>%
+    dplyr::mutate(answer_code = paste0("Q", questionnaire_no, "Q", question_position_no, "A", answer_no)) %>%
     # select and name final set of variables
-    dplyr::select(questionnaire_no, question_no, questions_position, answer_no, answer_code,
+    dplyr::select(questionnaire_no, question_no=question_position_no, answer_no, answer_code,
                   questionnaire_id=id, questionnaire_title=title, questionnaire_description=description,
                   questionnaire_type=questionnaireType, questionnaire_maxDurationInSeconds=maxDurationInSeconds,
                   question_id=questions_id, question_text=questions_text, question_type=questions_questionType,
