@@ -144,7 +144,7 @@ prepare_lsd <- function (path = "./", aggregate_duplicate_events=FALSE, idle_tim
     event_lists$scenario_elements <- NULL
 
 
-    # get tibble row including summarized logdata information for the current participant
+    # get tibble row including summarized logdata and tibbles with logdata itself for the current participant
     new_participation_data <- get_logdata_summary(json_data, event_lists, scenario_elements, debug_mode)
 
     # Make sure that a potentially existing new rater from this participation is added to the existing list

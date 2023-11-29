@@ -117,15 +117,15 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
     dplyr::mutate(tool=recode(tool, ApplicationPdf="PdfViewer", ImageJpeg="ImageViewer", Spreadsheet="SpreadsheetEditor", VideoMp4="VideoPlayer")) %>%
     # integrate corresponding tool id into all event_codes were necessary (starting with "T##")
     dplyr::mutate(event_code=replace(event_code, grepl("^T##", event_code),
-                                  paste0("T",
-                                         plyr::mapvalues(tool, tool_codes$tool, tool_codes$code, warn_missing = FALSE)[grepl("^T##", event_code)],
-                                         substr(event_code[grepl("^T##", event_code)], 4, 10) ))) %>%
+                                     paste0("T",
+                                            plyr::mapvalues(tool, tool_codes$tool, tool_codes$code, warn_missing = FALSE)[grepl("^T##", event_code)],
+                                            substr(event_code[grepl("^T##", event_code)], 4, 10) ))) %>%
 
     # integrate module id into the event_codes were necessary
     dplyr::mutate(event_code=replace(event_code, grepl("^M##", event_code),
-                                        paste0("M",
-                                               plyr::mapvalues(module_id, project_modules$module_id, project_modules$code, warn_missing = FALSE)[grepl("^M##", event_code)],
-                                               substr(event_code[grepl("^M##", event_code)], 4, 10) ))) %>%
+                                     paste0("M",
+                                            plyr::mapvalues(module_id, project_modules$module_id, project_modules$code, warn_missing = FALSE)[grepl("^M##", event_code)],
+                                            substr(event_code[grepl("^M##", event_code)], 4, 10) ))) %>%
 
 
     # The following steps are only conducted for a non-empty list of questionnaire elements
@@ -136,17 +136,17 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
         dplyr::mutate(., event_code=replace(event_code,
                                             grepl("^Q##Q##A##", event_code),
                                             paste0("Q", plyr::mapvalues(questionnaireId, questionnaire_elements$questionnaire_id,
-                                                                   questionnaire_elements$questionnaire_no, warn_missing = FALSE)[grepl("^Q##Q##A##", event_code)],
+                                                                        questionnaire_elements$questionnaire_no, warn_missing = FALSE)[grepl("^Q##Q##A##", event_code)],
                                                    "Q", plyr::mapvalues(questionId, questionnaire_elements$question_id,
-                                                                   questionnaire_elements$question_no, warn_missing = FALSE)[grepl("^Q##Q##A##", event_code)],
+                                                                        questionnaire_elements$question_no, warn_missing = FALSE)[grepl("^Q##Q##A##", event_code)],
                                                    "A", plyr::mapvalues(answerId, questionnaire_elements$answer_category_id,
-                                                                   questionnaire_elements$answer_no, warn_missing = FALSE)[grepl("^Q##Q##A##", event_code)],
+                                                                        questionnaire_elements$answer_no, warn_missing = FALSE)[grepl("^Q##Q##A##", event_code)],
                                                    substr(event_code[grepl("^Q##Q##A##", event_code)], 10, 10)))) %>%
-        # set answer id to "00" for free text answers that are edited
-        dplyr::mutate(., event_code=replace(event_code, grepl("^Q..Q..A..E", event_code),
-                                            paste0(substr(event_code[grepl("^Q..Q..A..E$", event_code)], 1, 7),
-                                                   "00",
-                                                   substr(event_code[grepl("^Q..Q..A..E$", event_code)], 10, 10))))
+          # set answer id to "00" for free text answers that are edited
+          dplyr::mutate(., event_code=replace(event_code, grepl("^Q..Q..A..E", event_code),
+                                              paste0(substr(event_code[grepl("^Q..Q..A..E$", event_code)], 1, 7),
+                                                     "00",
+                                                     substr(event_code[grepl("^Q..Q..A..E$", event_code)], 10, 10))))
       } else { . }
     } %>%
 
@@ -177,7 +177,7 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
                                         # TODO: Completing the data column for not yet considered events
                                         #event_type=="" ~ value,
                                         event_type=="UpdateEmail" ~ paste0("To: ", to, "; CC: ", cc, "; Subject: ", subject)
-                                        )) %>%
+    )) %>%
 
     # The following step is only conducted for a not empty list of scenario elements (happens when only questionnaires were administered)
     { if (length(scenario_elements)>0) {
@@ -208,59 +208,59 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
 
         # Fill missings in variable data with the value provided in the variable name (usually this will be the name of the file the participant is working with)
         dplyr::mutate(., data=dplyr::coalesce(data, name))
-      } else {.}
+    } else {.}
     } %>%
 
     # select final set of variables
     dplyr::select(invitation_id, survey_id, module_id, time, code=event_code, duration=event_duration,
-           label, data, project_time, type=event_type, data2, binary_file_id, email_id, spreadsheet_id, file_id) %>%
+                  label, data, project_time, type=event_type, data2, binary_file_id, email_id, spreadsheet_id, file_id) %>%
 
     # Removing hash IDs and debugging variables if 'debug_mode' is set to `FALSE`
     dplyr::select_if(debug_mode|!grepl("^event_type$|^data2$|^id$|_id$", names(.)))
 
 
-    # If indicated insert idle events, in which the participant is not doing anything anymore
-    if (idle_time) {
-      event_list <- insert_idle_events(event_list, idle_time)
-    }
+  # If indicated insert idle events, in which the participant is not doing anything anymore
+  if (idle_time) {
+    event_list <- insert_idle_events(event_list, idle_time)
+  }
 
-    # Aggregate the events if indicated by the corresponding argument
-    if (aggregate_duplicate_events) {
-      event_list <- aggregate_duplicates(event_list)
-    }
+  # Aggregate the events if indicated by the corresponding argument
+  if (aggregate_duplicate_events) {
+    event_list <- aggregate_duplicates(event_list)
+  }
 
-    # If function is not called in debug mode, split workflow into multiple lists, one for each module
-    if (!debug_mode){
-      full_event_list <- event_list %>%
-        dplyr::mutate(module_time=project_time, .after=project_time)
-      event_list <- list()
-      for (module_code in project_modules$code){
+  # If function is not called in debug mode, split workflow into multiple lists, one for each module
+  if (!debug_mode){
+    full_event_list <- event_list %>%
+      dplyr::mutate(module_time=project_time, .after=project_time)
+    event_list <- list()
+    for (module_code in project_modules$code){
 
-        # Extracting the starting event for the current module code (if there were multiple `tries` to start the module, the first one is taken)
-        first_module_event <- grep(paste0("^M",module_code,"STR_SCN$|^M",module_code,"STR_QST$"), full_event_list$code)[0]
+      # Extracting the starting event for the current module code (if there were multiple `tries` to start the module, the first one is taken)
+      first_module_event <- grep(paste0("^M",module_code,"STR_SCN$|^M",module_code,"STR_QST$"), full_event_list$code)[1]
 
-        # Making sure that the module was started - otherwise return directly NULL for this modules event list
-        if (length(first_module_event)!=0) {
+      # Making sure that the module was started - otherwise return directly NULL for this modules event list
+      if (length(first_module_event)!=0) {
 
-          # Extracting the ending event for the current module code (if there were multiple `tries` to end the module the one corresponding to the last try to start the module is taken)
-          last_module_event <- grep(paste0("^M",module_code,"END_SCN$|^M",module_code,"END_QST$"), full_event_list$code)[length(first_module_event)]
+        # Extracting the ending event for the current module code (if there were multiple `tries` to end the module the one corresponding to the last try to start the module is taken)
+        last_module_event <- grep(paste0("^M",module_code,"END_SCN$|^M",module_code,"END_QST$"), full_event_list$code)[length(first_module_event)]
 
-          # Checking if the participation was interrupted before the regular end and therefore no ending event is found
-          last_module_event <- ifelse (length(last_module_event)==0, length(full_event_list$code), last_module_event)
+        # Checking if the participation was interrupted before the regular end and therefore no ending event is found
+        last_module_event <- ifelse (length(last_module_event)==0, length(full_event_list$code), last_module_event)
 
-          # Assigning the events from module starting to ending event to the current module
-          event_list[[module_code]] <- slice(full_event_list, c(first_module_event:last_module_event))
+        # Assigning the events from module starting to ending event to the current module
+        event_list[[module_code]] <- slice(full_event_list, c(first_module_event:last_module_event))
 
-          # Adjusting the run times to be module specific
-          event_list[[module_code]]$module_time <- event_list[[module_code]]$module_time - event_list[[module_code]]$module_time[1]
-        } else {
-          event_list[[module_code]] <- NULL
-        }
-
+        # Adjusting the run times to be module specific
+        event_list[[module_code]]$module_time <- event_list[[module_code]]$module_time - event_list[[module_code]]$module_time[1]
+      } else {
+        event_list[[module_code]] <- NULL
       }
-      # Add current table with scenario elements to the result object
-      event_list[["scenario_elements"]] <- scenario_elements
+
     }
+    # Add current table with scenario elements to the result object
+    event_list[["scenario_elements"]] <- scenario_elements
+  }
 
 
   return(event_list)
