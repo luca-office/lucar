@@ -240,13 +240,13 @@ get_event_list <- function (json_data, project_modules, scenario_elements,
       first_module_event <- grep(paste0("^M",module_code,"STR_SCN$|^M",module_code,"STR_QST$"), full_event_list$code)[1]
 
       # Making sure that the module was started - otherwise return directly NULL for this modules event list
-      if (length(first_module_event)!=0) {
+      if (length(first_module_event)!=0 & !is.na(first_module_event)) {
 
         # Extracting the ending event for the current module code (if there were multiple `tries` to end the module the one corresponding to the last try to start the module is taken)
         last_module_event <- grep(paste0("^M",module_code,"END_SCN$|^M",module_code,"END_QST$"), full_event_list$code)[length(first_module_event)]
 
         # Checking if the participation was interrupted before the regular end and therefore no ending event is found
-        last_module_event <- ifelse (length(last_module_event)==0, length(full_event_list$code), last_module_event)
+        last_module_event <- ifelse (length(last_module_event)==0 | is.na(last_module_event), length(full_event_list$code), last_module_event)
 
         # Assigning the events from module starting to ending event to the current module
         event_list[[module_code]] <- slice(full_event_list, c(first_module_event:last_module_event))
@@ -340,8 +340,8 @@ aggregate_duplicates <- function (event_list) {
     # helper variable to later calculate the intensity (i.e. how often an event occurred)
     dplyr::mutate(event_no=1:n()) %>%
 
-    # only keep those case where the current workflow code is different from the previous
-    dplyr::filter(code!=previous_code) %>%
+    # only keep those case where the current workflow code is different from the previous or it is the first event
+    dplyr::filter(code!=previous_code | event_no==1) %>%
 
     # calculation of the activity duration after summarizing events with identical workflows codes occurring directly after each other
     dplyr::mutate(duration=dplyr::lead(project_time)-project_time) %>%
