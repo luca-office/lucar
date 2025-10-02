@@ -31,7 +31,9 @@ get_questionnaire_elements <- function (json_data) {
                                  binaryFileId=NA_character_, fileId=NA_character_, emailId=NA_character_,
                                  questions_freetextQuestionCodingCriteria_id=NA_character_, questions_freetextQuestionCodingCriteria_description=NA_character_,
                                  questions_freetextQuestionCodingCriteria_score=NA_character_, maxDurationInSeconds=NA_character_,
-                                 questions_freeTextAnswer=NA_character_, questions_answers_id=NA_character_)
+                                 questions_freeTextAnswer=NA_character_, questions_answers_id=NA_character_,
+                                 questions_freetextQuestionCodingCriteria__id=NA_character_, questions_freetextQuestionCodingCriteria__description=NA_character_,
+                                 questions_freetextQuestionCodingCriteria__score=NA_character_)
 
 
   questionnaire_data <- json_data$questionnaires %>%
@@ -83,6 +85,7 @@ get_questionnaire_elements <- function (json_data) {
             answer_category_description = dplyr::coalesce(
               questions_answers__text,
               questions_freetextQuestionCodingCriteria_description,
+              questions_freetextQuestionCodingCriteria__description,
             )
           )
       } else {
@@ -128,4 +131,5 @@ globalVariables(c("questions", "id", "questions_answers", "questions_freetextQue
                   "questions_isAdditionalFreeTextAnswerEnabled", "answer_category_id",
                   "answer_category_description", "questions_answers_isCorrect",
                   "questions_freetextQuestionCodingCriteria_score", "questions_position",
-                  "questions_freetextQuestionCodingCriteria__id", "questions_freetextQuestionCodingCriteria__score"))
+                  "questions_freetextQuestionCodingCriteria__id", "questions_freetextQuestionCodingCriteria__description",
+                  "questions_freetextQuestionCodingCriteria__score"))
